@@ -1,0 +1,2884 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>像素陨石防线</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #0a0a12;
+      color: #e0e0e0;
+      font-family: "Courier New", Courier, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    h1 {
+      font-size: 28px;
+      letter-spacing: 4px;
+      color: #7ec8ff;
+      text-shadow: 0 0 8px rgba(126, 200, 255, 0.5);
+      margin-bottom: 12px;
+    }
+
+    #gameWrapper {
+      position: relative;
+      border: 3px solid #333;
+      box-shadow: 0 0 20px rgba(126, 200, 255, 0.15);
+    }
+
+    canvas {
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      cursor: crosshair;
+    }
+
+    #controls {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    button {
+      font-family: inherit;
+      font-size: 14px;
+      padding: 8px 20px;
+      border: 2px solid #555;
+      background: #1a1a2e;
+      color: #ccc;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    button:hover {
+      border-color: #7ec8ff;
+      color: #7ec8ff;
+      background: #222244;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    button.active {
+      border-color: #4caf50;
+      color: #4caf50;
+    }
+
+    /* 游戏结束弹窗 */
+    #gameOverModal {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    #gameOverModal.show {
+      display: flex;
+    }
+
+    .modal-box {
+      background: #12121f;
+      border: 3px solid #7ec8ff;
+      padding: 30px 40px;
+      text-align: center;
+      box-shadow: 0 0 30px rgba(126, 200, 255, 0.3);
+      min-width: 340px;
+    }
+
+    .modal-box h2 {
+      font-size: 24px;
+      color: #ff6b6b;
+      margin-bottom: 6px;
+      letter-spacing: 2px;
+    }
+
+    .modal-box p {
+      font-size: 16px;
+      margin: 8px 0;
+      color: #aaa;
+    }
+
+    .modal-box .score-value {
+      color: #ffd700;
+      font-size: 22px;
+    }
+
+    .modal-box .high-score-value {
+      color: #7ec8ff;
+      font-size: 20px;
+    }
+
+    .modal-box .new-record {
+      color: #ffd700;
+      font-size: 18px;
+      margin-top: 12px;
+      animation: pulse 0.8s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulse {
+      from { opacity: 0.7; transform: scale(1); }
+      to   { opacity: 1;   transform: scale(1.05); }
+    }
+
+    #pauseOverlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    #pauseOverlay.show {
+      display: flex;
+      flex-direction: column;
+    }
+
+    #pauseOverlay .pause-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      padding: 28px 48px;
+      background: rgba(18, 18, 31, 0.85);
+      border: 2px solid #7ec8ff;
+      box-shadow: 0 0 24px rgba(126, 200, 255, 0.25);
+    }
+
+    #pauseOverlay span {
+      font-size: 32px;
+      color: #7ec8ff;
+      letter-spacing: 8px;
+      text-shadow: 0 0 12px rgba(126, 200, 255, 0.6);
+    }
+
+    #pauseOverlay small {
+      font-size: 13px;
+      color: #888;
+      letter-spacing: 2px;
+    }
+
+    /* 【手感】开始/结束界面排版 */
+    .modal-subtitle {
+      font-size: 13px;
+      color: #666;
+      letter-spacing: 2px;
+      margin-bottom: 20px;
+    }
+
+    .modal-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #444, transparent);
+      margin: 4px 0 18px;
+    }
+
+    .modal-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      text-align: left;
+      margin-bottom: 16px;
+    }
+
+    .modal-stat {
+      background: rgba(126, 200, 255, 0.05);
+      border: 1px solid #333;
+      padding: 10px 14px;
+    }
+
+    .modal-stat-label {
+      display: block;
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 4px;
+      letter-spacing: 1px;
+    }
+
+    .modal-stat-value {
+      display: block;
+      font-size: 20px;
+      color: #7ec8ff;
+    }
+
+    .modal-stat-value.gold { color: #ffd700; }
+    .modal-stat-value.red { color: #ff6b6b; }
+
+    .modal-footer {
+      font-size: 12px;
+      color: #555;
+      margin-top: 8px;
+    }
+
+    #hint {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #555;
+    }
+
+    /* 【成就系统】弹窗与列表 */
+    #achievementModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.82);
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    #achievementModal.show {
+      display: flex;
+    }
+
+    .ach-panel {
+      background: #12121f;
+      border: 3px solid #ffd700;
+      width: min(520px, 92vw);
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 40px rgba(255, 215, 0, 0.2);
+    }
+
+    .ach-header {
+      padding: 16px 20px;
+      border-bottom: 2px solid #333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .ach-header h2 {
+      color: #ffd700;
+      font-size: 20px;
+      letter-spacing: 3px;
+    }
+
+    .ach-progress {
+      color: #888;
+      font-size: 13px;
+    }
+
+    .ach-list {
+      overflow-y: auto;
+      padding: 12px 16px;
+      flex: 1;
+    }
+
+    .ach-item {
+      display: flex;
+      gap: 12px;
+      padding: 10px 8px;
+      border-bottom: 1px solid #222;
+      align-items: flex-start;
+    }
+
+    .ach-item.locked { opacity: 0.45; }
+
+    .ach-icon {
+      width: 36px;
+      height: 36px;
+      border: 2px solid #555;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      background: #1a1a2e;
+    }
+
+    .ach-item.unlocked .ach-icon {
+      border-color: #ffd700;
+      box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+    }
+
+    .ach-info h3 {
+      font-size: 14px;
+      color: #e0e0e0;
+      margin-bottom: 4px;
+    }
+
+    .ach-item.unlocked .ach-info h3 { color: #ffd700; }
+
+    .ach-info p {
+      font-size: 12px;
+      color: #777;
+      line-height: 1.4;
+    }
+
+    .ach-close {
+      margin: 12px 16px 16px;
+    }
+
+    button.has-badge {
+      position: relative;
+    }
+
+    button .badge {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      background: #ffd700;
+      color: #111;
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 0;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>像素陨石防线</h1>
+
+  <div id="gameWrapper">
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="pauseOverlay">
+      <div class="pause-content">
+        <span>暂 停</span>
+        <small>按 P 键继续游戏</small>
+      </div>
+    </div>
+    <!-- 游戏结束弹窗 -->
+    <div id="gameOverModal">
+      <div class="modal-box">
+        <h2>任务结束</h2>
+        <p class="modal-subtitle">MISSION COMPLETE</p>
+        <div class="modal-divider"></div>
+        <div class="modal-stats">
+          <div class="modal-stat">
+            <span class="modal-stat-label">本局得分</span>
+            <span class="modal-stat-value gold" id="finalScore">0</span>
+          </div>
+          <div class="modal-stat">
+            <span class="modal-stat-label">历史最高</span>
+            <span class="modal-stat-value" id="modalHighScore">0</span>
+          </div>
+          <div class="modal-stat">
+            <span class="modal-stat-label">存活时间</span>
+            <span class="modal-stat-value"><span id="finalTime">0</span> 秒</span>
+          </div>
+          <div class="modal-stat">
+            <span class="modal-stat-label">击毁 / 连击</span>
+            <span class="modal-stat-value"><span id="finalKills">0</span> · <span id="finalCombo">0</span>x</span>
+          </div>
+        </div>
+        <p class="new-record" id="newRecordBadge" style="display:none;">★ 新纪录！★</p>
+        <p class="modal-footer" id="finalBossReport">本局击毁 0 个陨石 · BOSS：未击杀</p>
+        <p class="modal-footer">点击「重新挑战」再来一局</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="controls">
+    <button id="btnStart">开始游戏</button>
+    <button id="btnRetry">重新挑战</button>
+    <button id="btnPause">暂停</button>
+    <button id="btnAchievements" class="has-badge">成就<span class="badge" id="achBadge">0/0</span></button>
+    <button id="btnSound">音效：开</button>
+  </div>
+  <p id="hint">WASD 移动 · 空格/鼠标射击 · P 暂停</p>
+
+  <!-- 【成就系统】成就列表弹窗 -->
+  <div id="achievementModal">
+    <div class="ach-panel">
+      <div class="ach-header">
+        <h2>🏆 成就</h2>
+        <span class="ach-progress" id="achProgress">0 / 0 已解锁</span>
+      </div>
+      <div class="ach-list" id="achList"></div>
+      <button class="ach-close" id="btnAchClose">关闭</button>
+    </div>
+  </div>
+
+<script>
+/* ============================================================
+ *  像素陨石防线 - 纯本地挑战类网页小游戏
+ *  所有数据保存在浏览器 LocalStorage，无网络请求
+ * ============================================================ */
+
+// ========== 【可手动修改】动态难度三阶段（平滑加压） ==========
+const PHASE1_END_SEC = 90;                 // 阶段一：0~90 秒，基础平缓节奏
+const PHASE3_DELAY_AFTER_BOSS1_SEC = 60;   // 击败第一 BOSS 后再过此秒数进入阶段三
+const PHASE2_SPAWN_REDUCE = 8;             // 阶段二：额外缩短陨石刷新间隔（帧）
+const PHASE2_METEOR_SPEED_MULT = 1.12;     // 阶段二：陨石移速倍率
+const PHASE2_DROP_BONUS = 0.05;            // 阶段二：装备掉落概率加成
+const PHASE3_SPAWN_REDUCE = 14;            // 阶段三：再叠加缩短刷新间隔（帧）
+const PHASE3_EXTRA_SPAWN_CHANCE = 0.35;    // 阶段三：每次刷新额外多刷 1 颗概率
+const PHASE3_TRIPLE_SPAWN_CHANCE = 0.12;   // 阶段三：一次刷 3 颗概率
+const PHASE3_LARGE_METEOR_RATIO = 0.82;    // 阶段三：大陨石占比（默认 0.7）
+const PHASE2_BONUS_SPAWN_CHANCE = 0.15;    // 阶段二：额外多刷 1 颗概率
+
+// ========== 【可手动修改】陨石潮（击败第一 BOSS 后） ==========
+const SWARM_FIRST_DELAY_SEC = 45;          // 击败第一 BOSS 后首次陨石潮延迟（秒）
+const SWARM_INTERVAL_SEC = 55;             // 陨石潮间隔（秒）
+const SWARM_WARNING_SEC = 2;               // 陨石潮出现前预警秒数
+const SWARM_COUNT_MIN = 8;                 // 每波最少陨石数
+const SWARM_COUNT_MAX = 14;                // 每波最多陨石数
+const SWARM_SPAWN_SPREAD_FRAMES = 18;      // 波内陨石分散刷出总帧数
+
+// ========== 【可手动修改】紧张氛围视觉 ==========
+const TENSION_STAR_BRIGHTNESS_RAMP = 0.000008; // 随存活时间星星渐亮速率
+const TENSION_STAR_BRIGHTNESS_MAX = 0.42;    // 星星亮度加成上限
+const TENSION_VIGNETTE_START_SEC = 150;      // 边缘红晕开始出现秒数
+const TENSION_VIGNETTE_MAX_ALPHA = 0.22;     // 边缘红晕最大透明度
+
+// ========== 【可手动修改】BOSS 配置 ==========
+const BOSS_SPAWN_TIME_SEC = 90;           // 第一只 BOSS 出现所需存活秒数
+const BOSS2_DELAY_AFTER_BOSS1_SEC = 120;  // 【拓展】击败第一只 BOSS 后再存活秒数，第二 BOSS 登场
+const BOSS_MAX_HP = 80;                   // 第一只 BOSS 生命值
+const BOSS2_MAX_HP = 150;                 // 【拓展】第二只强化 BOSS 生命值
+const BOSS_RADIUS = 55;                   // BOSS 碰撞/绘制半径
+const BOSS_SPEED = 0.65;                  // BOSS 移动速度
+const BOSS_SCORE_REWARD = 500;            // 击杀第一只 BOSS 奖励分数
+const BOSS2_SCORE_REWARD = 1200;          // 【拓展】击杀第二只 BOSS 奖励分数
+const BOSS_BULLET_INTERVAL = 85;          // 第一只 BOSS 弹幕发射间隔（帧）
+const BOSS2_BULLET_INTERVAL = 40;         // 【拓展】第二只 BOSS 弹幕间隔（更快）
+const BOSS_BULLET_SPEED = 3.2;            // 第一只 BOSS 弹幕速度
+const BOSS2_BULLET_SPEED = 4.0;           // 【拓展】第二只 BOSS 弹幕速度
+const BOSS2_MOVE_INTERVAL = 65;           // 【节奏】第二 BOSS 变向间隔（帧，越小越灵活）
+const BOSS2_MOVE_LERP = 0.028;            // 【节奏】第二 BOSS 横向移动速率
+const BOSS2_VERTICAL_RANGE = 35;          // 【节奏】第二 BOSS 纵向机动幅度（像素）
+const BOSS_BULLET_SIZE = 6;               // BOSS 弹幕半径
+const BOSS_ALERT_DURATION = 180;          // BOSS 登场提示显示帧数（约3秒）
+const BOSS_DEFEAT_DURATION = 150;         // 【手感】BOSS 击败提示停留帧数（约2.5秒）
+const BOSS_EXPLODE_PARTICLE_COUNT = 90;   // BOSS 死亡大爆炸粒子数量
+
+// ========== 【可手动修改】激光束 / 分数难度 ==========
+const LASER_FIRE_INTERVAL = 14;           // 激光束装备：发射间隔（帧）
+const LASER_BEAM_WIDTH = 12;              // 激光束判定宽度
+const LASER_VISUAL_LIFE = 12;             // 激光束视觉持续帧数
+
+/** 【拓展】分数档位：达到后额外缩短陨石刷新间隔（叠加，更平滑） */
+const SCORE_SPAWN_TIERS = [
+  { score: 200,  reduce: 4 },
+  { score: 500,  reduce: 6 },
+  { score: 1000, reduce: 8 },
+  { score: 2000, reduce: 10 }
+];
+
+// ---------- 【体验优化】连击 / 手感 / 性能 ----------
+const COMBO_TIMEOUT = 120;           // 连击维持帧数（约2秒）
+const COMBO_MAX_MULT = 4;            // 连击最高倍率
+const MAX_PARTICLES = 180;           // 粒子池上限，防止卡顿
+const SCORE_POPUP_LIFE = 50;         // 飘字持续时间
+const BOSS_WARNING_SEC = 85;         // BOSS 预告开始秒数
+const DROP_MAGNET_RANGE = 90;        // 掉落物磁吸范围
+const DROP_MAGNET_FORCE = 0.35;      // 磁吸力度
+const DOUBLE_SPAWN_TIME = 3600;      // 存活此帧数后可能双重刷新
+
+// ---------- 常量配置 ----------
+const CANVAS_W = 800;
+const CANVAS_H = 600;
+const STORAGE_KEY_HIGH_SCORE = 'meteorDefense_highScore';
+const STORAGE_KEY_SOUND = 'meteorDefense_soundEnabled';
+const STORAGE_KEY_ACHIEVEMENTS = 'meteorDefense_achievements';   // 【成就】已解锁 ID 列表
+const STORAGE_KEY_LIFETIME = 'meteorDefense_lifetimeStats';      // 【成就】累计统计
+
+// 飞船参数
+const SHIP_SIZE = 20;
+const SHIP_SPEED = 4;
+const SHIP_MAX_HP = 3;
+const SHIP_INVINCIBLE_TIME = 120; // 受伤后无敌帧（帧数）
+const HIT_FLASH_FRAMES = 36;      // 【画面】受击白色闪烁时长（0.6秒≈36帧，纯视觉）
+const SHIP_TURN_SPEED = 0.14;     // 【手感】飞船朝向鼠标平滑转向速率（0~1）
+
+// 子弹参数
+const BULLET_SPEED = 8;
+const BULLET_SIZE = 4;
+const FIRE_COOLDOWN = 8; // 射击冷却帧数
+
+// 陨石参数
+const METEOR_LARGE_RADIUS = 22;
+const METEOR_SMALL_RADIUS = 12;
+const METEOR_LARGE_SPEED = 1.2;
+const METEOR_SMALL_SPEED = 2.0;
+const METEOR_LARGE_HP = 2;
+const METEOR_SMALL_HP = 1;
+const METEOR_LARGE_SCORE = 20;
+const METEOR_SMALL_SCORE = 10;
+
+// 难度参数
+const BASE_SPAWN_INTERVAL = 90;  // 初始刷新间隔（帧）
+const MIN_SPAWN_INTERVAL = 25;   // 最快刷新间隔
+const DIFFICULTY_RAMP = 0.015;   // 每帧缩短间隔的量
+
+// ---------- 【新增】装备掉落系统常量 ----------
+const DROP_SPAWN_CHANCE = 0.22;       // 击毁陨石后掉落概率
+const DROP_FLOAT_SPEED = 0.6;         // 掉落物向下漂浮速度
+const DROP_SIZE = 10;                 // 掉落物碰撞半径
+const DROP_LIFETIME = 600;            // 掉落物最大存在帧数（约10秒）
+const SPEED_BOOST_MULT = 1.8;         // 加速推进速度倍率
+const BURST_SPREAD = 0.08;            // 连发枪三发子弹散布角（弧度）
+const SHOTGUN_COUNT = 5;              // 散弹枪子弹数量
+const SHOTGUN_SPREAD = 0.55;          // 散弹枪扇形总张角（弧度）
+
+/** 【新增】七种装备定义：id、显示名、持续帧数（60帧≈1秒）、颜色；instant=true 为即时生效 */
+const EQUIPMENT_TYPES = {
+  burst:   { id: 'burst',   name: '连发枪',   duration: 15 * 60, color: '#ff9800' },
+  pierce:  { id: 'pierce',  name: '穿透弹',   duration: 12 * 60, color: '#e040fb' },
+  shield:  { id: 'shield',  name: '护盾',     duration: 20 * 60, color: '#00e676' },
+  speed:   { id: 'speed',   name: '加速推进', duration: 10 * 60, color: '#40c4ff' },
+  shotgun: { id: 'shotgun', name: '散弹枪',   duration: 8 * 60,  color: '#ff5252' },
+  laser:   { id: 'laser',   name: '激光束',   duration: 7 * 60,  color: '#00e5ff' },
+  repair:  { id: 'repair',  name: '回血装置', duration: 0,       color: '#69f0ae', instant: true }
+};
+const EQUIPMENT_LIST = Object.values(EQUIPMENT_TYPES);
+
+// ---------- 【画面】背景视差星星 ----------
+const BG_STAR_FAR_COUNT = 50;   // 远景星数量（慢）
+const BG_STAR_NEAR_COUNT = 40;  // 近景星数量（快）
+
+// ---------- DOM 引用 ----------
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const btnStart = document.getElementById('btnStart');
+const btnRetry = document.getElementById('btnRetry');
+const btnPause = document.getElementById('btnPause');
+const btnAchievements = document.getElementById('btnAchievements');
+const btnSound = document.getElementById('btnSound');
+const achievementModal = document.getElementById('achievementModal');
+const achList = document.getElementById('achList');
+const achProgress = document.getElementById('achProgress');
+const achBadge = document.getElementById('achBadge');
+const btnAchClose = document.getElementById('btnAchClose');
+const gameOverModal = document.getElementById('gameOverModal');
+const pauseOverlay = document.getElementById('pauseOverlay');
+const finalScoreEl = document.getElementById('finalScore');
+const finalTimeEl = document.getElementById('finalTime');
+const finalKillsEl = document.getElementById('finalKills');
+const finalComboEl = document.getElementById('finalCombo');
+const newRecordBadge = document.getElementById('newRecordBadge');
+const modalHighScoreEl = document.getElementById('modalHighScore');
+const finalBossReportEl = document.getElementById('finalBossReport');
+
+// 关闭图像平滑，保持像素风格
+ctx.imageSmoothingEnabled = false;
+
+// ---------- 本地存储 ----------
+function loadHighScore() {
+  return parseInt(localStorage.getItem(STORAGE_KEY_HIGH_SCORE) || '0', 10);
+}
+
+function saveHighScore(score) {
+  localStorage.setItem(STORAGE_KEY_HIGH_SCORE, String(score));
+}
+
+function loadSoundEnabled() {
+  const val = localStorage.getItem(STORAGE_KEY_SOUND);
+  return val === null ? true : val === 'true';
+}
+
+function saveSoundEnabled(enabled) {
+  localStorage.setItem(STORAGE_KEY_SOUND, String(enabled));
+}
+
+// ---------- 【成就系统】本地存储与解锁 ----------
+function loadAchievements() {
+  try {
+    unlockedAchievements = JSON.parse(localStorage.getItem(STORAGE_KEY_ACHIEVEMENTS) || '{}');
+  } catch (e) {
+    unlockedAchievements = {};
+  }
+}
+
+function saveAchievements() {
+  localStorage.setItem(STORAGE_KEY_ACHIEVEMENTS, JSON.stringify(unlockedAchievements));
+}
+
+function loadLifetimeStats() {
+  try {
+    lifetimeStats = JSON.parse(localStorage.getItem(STORAGE_KEY_LIFETIME) || '{}');
+  } catch (e) {
+    lifetimeStats = {};
+  }
+  lifetimeStats.totalGames = lifetimeStats.totalGames || 0;
+  lifetimeStats.totalKills = lifetimeStats.totalKills || 0;
+  lifetimeStats.totalBossKills = lifetimeStats.totalBossKills || 0;
+  lifetimeStats.totalPickups = lifetimeStats.totalPickups || 0;
+}
+
+function saveLifetimeStats() {
+  localStorage.setItem(STORAGE_KEY_LIFETIME, JSON.stringify(lifetimeStats));
+}
+
+function isAchievementUnlocked(id) {
+  return !!unlockedAchievements[id];
+}
+
+function getAchievementDef(id) {
+  return ACHIEVEMENTS.find(a => a.id === id);
+}
+
+function unlockAchievement(id) {
+  if (isAchievementUnlocked(id)) return;
+  const def = getAchievementDef(id);
+  if (!def) return;
+  unlockedAchievements[id] = Date.now();
+  saveAchievements();
+  achievementToasts.push({
+    name: def.name,
+    desc: def.desc,
+    icon: def.icon,
+    life: 150,
+    maxLife: 150
+  });
+  playAchievementSound();
+  updateAchievementBadge();
+}
+
+function resetRunStats() {
+  runStats = { damageTaken: 0, equipTypes: {}, bossKilled: false, boss1Killed: false, boss2Killed: false };
+  lastSurviveCheckSec = 0;
+}
+
+/** 根据当前游戏状态检测并解锁成就 */
+function checkAchievements() {
+  if (gameState !== STATE.PLAYING && gameState !== STATE.GAMEOVER) return;
+
+  if (killCount >= 1) unlockAchievement('first_blood');
+  if (score >= 100) unlockAchievement('score_100');
+  if (score >= 500) unlockAchievement('score_500');
+  if (score >= 1000) unlockAchievement('score_1000');
+  if (maxCombo >= 5) unlockAchievement('combo_5');
+  if (maxCombo >= 10) unlockAchievement('combo_10');
+  if (killCount >= 20) unlockAchievement('kills_20');
+  if (killCount >= 50) unlockAchievement('kills_50');
+
+  const sec = Math.floor(gameTime / 60);
+  if (sec !== lastSurviveCheckSec) {
+    lastSurviveCheckSec = sec;
+    if (sec >= 30) unlockAchievement('survive_30');
+    if (sec >= 60) unlockAchievement('survive_60');
+    if (sec >= BOSS_SPAWN_TIME_SEC) unlockAchievement('survive_90');
+  }
+
+  if (runStats.bossKilled) unlockAchievement('boss_slayer');
+  if (runStats.bossKilled && runStats.hpAtBossKill === SHIP_MAX_HP) unlockAchievement('iron_wall');
+
+  const equipCount = Object.keys(runStats.equipTypes).length;
+  if (equipCount >= 7) unlockAchievement('collector');
+  if ((lifetimeStats.totalPickups || 0) >= 1) unlockAchievement('first_pickup');
+
+  if (lifetimeStats.totalGames >= 10) unlockAchievement('veteran');
+  if (lifetimeStats.totalKills >= 500) unlockAchievement('annihilator');
+}
+
+function onGameEndAchievements(isNewRecord) {
+  lifetimeStats.totalGames++;
+  lifetimeStats.totalKills += killCount;
+  if (runStats.bossKilled) lifetimeStats.totalBossKills++;
+  saveLifetimeStats();
+  if (isNewRecord) unlockAchievement('new_record');
+  checkAchievements();
+}
+
+function updateAchievementBadge() {
+  const total = ACHIEVEMENTS.length;
+  const unlocked = ACHIEVEMENTS.filter(a => isAchievementUnlocked(a.id)).length;
+  achBadge.textContent = unlocked + '/' + total;
+  achProgress.textContent = unlocked + ' / ' + total + ' 已解锁';
+}
+
+function renderAchievementList() {
+  achList.innerHTML = '';
+  ACHIEVEMENTS.forEach(ach => {
+    const unlocked = isAchievementUnlocked(ach.id);
+    const item = document.createElement('div');
+    item.className = 'ach-item ' + (unlocked ? 'unlocked' : 'locked');
+    item.innerHTML =
+      '<div class="ach-icon">' + ach.icon + '</div>' +
+      '<div class="ach-info"><h3>' + ach.name + (unlocked ? '' : ' 🔒') + '</h3><p>' + ach.desc + '</p></div>';
+    achList.appendChild(item);
+  });
+  updateAchievementBadge();
+}
+
+function openAchievementModal() {
+  if (gameState === STATE.PLAYING && !isPaused) togglePause();
+  renderAchievementList();
+  achievementModal.classList.add('show');
+}
+
+function closeAchievementModal() {
+  achievementModal.classList.remove('show');
+}
+
+/** 【成就】画布右侧解锁 Toast */
+function drawAchievementToasts() {
+  let y = CANVAS_H - 20;
+  for (let i = achievementToasts.length - 1; i >= 0; i--) {
+    const t = achievementToasts[i];
+    const alpha = Math.min(1, t.life / 40);
+    const slide = Math.max(0, (t.maxLife - t.life) * 0.5);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    const tw = 220, th = 44;
+    const tx = CANVAS_W - tw - 10 + slide;
+    const ty = y - th;
+    ctx.fillStyle = 'rgba(10, 10, 30, 0.88)';
+    ctx.fillRect(tx, ty, tw, th);
+    ctx.strokeStyle = '#ffd700';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(tx, ty, tw, th);
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 13px "Courier New", monospace';
+    ctx.fillText(t.icon + ' 成就解锁', tx + 10, ty + 16);
+    ctx.fillStyle = '#ccc';
+    ctx.font = '11px "Courier New", monospace';
+    ctx.fillText(t.name, tx + 10, ty + 32);
+    ctx.restore();
+    y -= th + 8;
+    t.life--;
+    if (t.life <= 0) achievementToasts.splice(i, 1);
+  }
+}
+
+// ---------- 音效系统（Web Audio API 生成，无需外部文件） ----------
+let audioCtx = null;
+let soundEnabled = loadSoundEnabled();
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+}
+
+function playTone(freq, duration, type = 'square', volume = 0.08) {
+  if (!soundEnabled || !audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+function playShootSound() { playTone(880, 0.06, 'square', 0.05); }
+function playHitSound()   { playTone(220, 0.12, 'sawtooth', 0.08); }
+function playExplodeSound() { playTone(150, 0.15, 'sawtooth', 0.1); playTone(80, 0.2, 'square', 0.06); }
+function playHurtSound()  { playTone(120, 0.25, 'sawtooth', 0.12); }
+function playGameOverSound() { playTone(200, 0.3, 'triangle', 0.1); playTone(100, 0.5, 'triangle', 0.08); }
+function playPickupSound()   { playTone(660, 0.08, 'square', 0.06); playTone(990, 0.1, 'square', 0.05); }
+function playShieldBreakSound() { playTone(440, 0.15, 'sine', 0.08); playTone(220, 0.2, 'sine', 0.06); }
+function playBossAppearSound() { playTone(110, 0.4, 'sawtooth', 0.1); playTone(165, 0.35, 'square', 0.08); }
+function playBossDeathSound()  { playTone(80, 0.5, 'sawtooth', 0.12); playTone(40, 0.6, 'triangle', 0.1); }
+function playComboSound(mult)  { playTone(440 + mult * 80, 0.07, 'square', 0.04); }
+function playAchievementSound() { playTone(523, 0.1, 'square', 0.06); playTone(659, 0.1, 'square', 0.05); playTone(784, 0.15, 'square', 0.05); }
+
+function updateSoundButton() {
+  btnSound.textContent = soundEnabled ? '音效：开' : '音效：关';
+  btnSound.classList.toggle('active', soundEnabled);
+}
+
+// ---------- 游戏状态 ----------
+const STATE = { MENU: 0, PLAYING: 1, GAMEOVER: 2, PAUSED: 3 };
+let gameState = STATE.MENU;
+let highScore = loadHighScore();
+let isPaused = false;
+
+// 【体验优化】手感与反馈状态
+let screenShake = 0;        // 屏幕震动强度
+let damageFlash = 0;        // 受伤红屏闪烁
+let combo = 0;              // 当前连击数
+let comboTimer = 0;         // 连击倒计时
+let maxCombo = 0;           // 本局最高连击
+let killCount = 0;          // 本局击毁数
+let scorePopups = [];       // 得分飘字 { x, y, text, life, color }
+
+// 【成就系统】持久化与当局追踪
+/** 成就定义：id、名称、描述、图标（emoji） */
+const ACHIEVEMENTS = [
+  { id: 'first_blood',  name: '初试锋芒', desc: '击毁第一个陨石',           icon: '☄' },
+  { id: 'score_100',    name: '百分射手', desc: '单局得分达到 100',         icon: '💯' },
+  { id: 'score_500',    name: '火力压制', desc: '单局得分达到 500',         icon: '🔥' },
+  { id: 'score_1000',   name: '星际王牌', desc: '单局得分达到 1000',        icon: '👑' },
+  { id: 'survive_30',   name: '立足太空', desc: '单局存活 30 秒',           icon: '🛸' },
+  { id: 'survive_60',   name: '持久作战', desc: '单局存活 60 秒',           icon: '⏱' },
+  { id: 'survive_90',   name: '直面风暴', desc: '单局存活 90 秒（BOSS 抵达）', icon: '⚡' },
+  { id: 'combo_5',      name: '连击高手', desc: '单局达成 5 连击',          icon: '🔗' },
+  { id: 'combo_10',     name: '连击狂魔', desc: '单局达成 10 连击',         icon: '⛓' },
+  { id: 'kills_20',     name: '陨石猎手', desc: '单局击毁 20 个陨石',       icon: '🎯' },
+  { id: 'kills_50',     name: '清障专家', desc: '单局击毁 50 个陨石',       icon: '💥' },
+  { id: 'boss_slayer',  name: 'BOSS 终结者', desc: '击败 BOSS',              icon: '👾' },
+  { id: 'iron_wall',    name: '铁壁防御', desc: '满血状态下击败 BOSS',      icon: '🛡' },
+  { id: 'first_pickup', name: '拾荒者',   desc: '首次拾取装备',             icon: '📦' },
+  { id: 'collector',    name: '装备大师', desc: '单局集齐全部 7 种装备',    icon: '🎁' },
+  { id: 'new_record',   name: '突破极限', desc: '打破历史最高分',           icon: '🏅' },
+  { id: 'veteran',      name: '老兵归来', desc: '累计完成 10 局游戏',       icon: '🎖' },
+  { id: 'annihilator',  name: '毁灭者',   desc: '累计击毁 500 个陨石',      icon: '☠' }
+];
+
+let unlockedAchievements = {};   // { id: unlockTime }
+let lifetimeStats = { totalGames: 0, totalKills: 0, totalBossKills: 0 };
+let runStats = { damageTaken: 0, equipTypes: {}, bossKilled: false };
+let achievementToasts = [];      // 游戏中解锁提示 { name, desc, life, maxLife }
+let lastSurviveCheckSec = 0;     // 存活成就检测节流
+
+// 输入状态
+const keys = {};
+let mouseDown = false;
+let mouseX = CANVAS_W / 2;
+let mouseY = CANVAS_H / 2;
+
+// 游戏对象
+let ship = null;
+let bullets = [];
+let meteors = [];
+let particles = [];
+let sparks = [];           // 【画面】子弹命中火花（短生命周期）
+let pickupFlashes = [];    // 【画面】装备拾取扩散闪光
+let score = 0;
+let spawnTimer = 0;
+let spawnInterval = BASE_SPAWN_INTERVAL;
+let gameTime = 0;
+let fireCooldown = 0;
+
+// 【新增】装备掉落与增益状态（单局有效，resetGame/endGame 时清空）
+let drops = [];              // 屏幕上的掉落物
+let activeEquipments = [];   // 当前生效装备 { type, remaining }
+let shieldActive = false;    // 护盾是否还能抵挡一次撞击
+
+// 【新增】BOSS 系统状态（单局有效，resetGame/endGame 时清空）
+let boss = null;                  // 当前 BOSS 对象，null 表示无 BOSS
+let bossBullets = [];             // BOSS 发射的弹幕
+let bossAlertTimer = 0;           // 登场提示剩余帧数
+let bossDefeatTimer = 0;          // 【手感】击败 BOSS 提示剩余帧数
+let boss1Triggered = false;       // 第一只 BOSS 是否已触发过
+let boss2Triggered = false;       // 第二只 BOSS 是否已触发过
+let boss1Defeated = false;        // 【拓展】第一只 BOSS 是否已被击败
+let boss1DefeatedAt = 0;          // 【拓展】击败第一只 BOSS 时的 gameTime
+let lastBossDefeatReward = 0;     // 【拓展】最近一次 BOSS 击败奖励（横幅显示用）
+let bossExplosionParticles = [];  // BOSS 死亡专用慢消散爆炸粒子
+let laserBeams = [];              // 【拓展】激光束视觉效果
+let laserFireCooldown = 0;        // 【拓展】激光束发射冷却
+
+// 【节奏】陨石潮状态（击败第一 BOSS 后周期性触发）
+let nextSwarmGameTime = 0;        // 下一波陨石潮触发的 gameTime
+let swarmMeteorsLeft = 0;         // 当前波次剩余待刷陨石数
+let swarmSpawnCooldown = 0;       // 波内刷怪间隔倒计时
+let swarmWarningActive = false;   // 是否处于陨石潮预警阶段
+
+// 【画面】深空视差星星（远/近两层，纯装饰）
+let bgStarsFar = [];
+let bgStarsNear = [];
+
+/** 【画面】初始化远、近两层漂移星星 */
+function initBgStars() {
+  bgStarsFar = [];
+  bgStarsNear = [];
+  for (let i = 0; i < BG_STAR_FAR_COUNT; i++) {
+    bgStarsFar.push({
+      x: Math.random() * CANVAS_W,
+      y: Math.random() * CANVAS_H,
+      size: 1,
+      speed: 0.015 + Math.random() * 0.035,
+      alpha: 0.1 + Math.random() * 0.18
+    });
+  }
+  for (let i = 0; i < BG_STAR_NEAR_COUNT; i++) {
+    bgStarsNear.push({
+      x: Math.random() * CANVAS_W,
+      y: Math.random() * CANVAS_H,
+      size: Math.random() < 0.65 ? 1 : 2,
+      speed: 0.06 + Math.random() * 0.12,
+      alpha: 0.22 + Math.random() * 0.35
+    });
+  }
+}
+
+/** 【画面】更新两层星星漂移（速度不同形成视差） */
+function updateBgStars() {
+  function driftLayer(arr) {
+    for (const s of arr) {
+      s.y += s.speed;
+      if (s.y > CANVAS_H) {
+        s.y = 0;
+        s.x = Math.random() * CANVAS_W;
+      }
+    }
+  }
+  driftLayer(bgStarsFar);
+  driftLayer(bgStarsNear);
+}
+
+// ---------- 飞船类 ----------
+function createShip() {
+  return {
+    x: CANVAS_W / 2,
+    y: CANVAS_H / 2,
+    hp: SHIP_MAX_HP,
+    invincible: 0,
+    angle: -Math.PI / 2, // 默认朝上
+    thrusting: false     // 【新增】是否正在推进（尾焰动画用）
+  };
+}
+
+// ---------- 子弹 ----------
+/** 【手感】获取当前鼠标瞄准角度 */
+function getAimAngle() {
+  return Math.atan2(mouseY - ship.y, mouseX - ship.x);
+}
+
+/** 【手感】角度平滑插值（处理 ±π 跨界） */
+function lerpAngle(from, to, t) {
+  let diff = to - from;
+  while (diff > Math.PI) diff -= Math.PI * 2;
+  while (diff < -Math.PI) diff += Math.PI * 2;
+  return from + diff * t;
+}
+
+/** 【手感】飞船朝向缓慢转向鼠标 */
+function updateShipAiming() {
+  if (!ship || gameState !== STATE.PLAYING) return;
+  ship.angle = lerpAngle(ship.angle, getAimAngle(), SHIP_TURN_SPEED);
+}
+
+/** 【改动】增加 pierceLeft：穿透弹可额外穿透的陨石数量 */
+function createBullet(x, y, angle, pierceLeft) {
+  return {
+    x, y,
+    vx: Math.cos(angle) * BULLET_SPEED,
+    vy: Math.sin(angle) * BULLET_SPEED,
+    life: 120,
+    pierceLeft: pierceLeft || 0
+  };
+}
+
+/** 【改动】射击方向跟随鼠标；根据生效装备改变发射模式 */
+function fireBullet() {
+  if (fireCooldown > 0 || gameState !== STATE.PLAYING) return;
+  // 子弹朝鼠标方向射出（飞船朝向平滑跟随，不在此瞬间 snap）
+  const angle = getAimAngle();
+
+  const pierce = hasEquipment('pierce') ? 1 : 0;
+
+  if (hasEquipment('shotgun')) {
+    // 散弹枪：扇形 5 发
+    for (let i = 0; i < SHOTGUN_COUNT; i++) {
+      const a = angle + SHOTGUN_SPREAD * (i / (SHOTGUN_COUNT - 1) - 0.5);
+      bullets.push(createBullet(ship.x, ship.y, a, pierce));
+    }
+    fireCooldown = FIRE_COOLDOWN + 5;
+  } else if (hasEquipment('burst')) {
+    // 连发枪：同方向 3 发，轻微散布
+    for (let i = -1; i <= 1; i++) {
+      bullets.push(createBullet(ship.x, ship.y, angle + i * BURST_SPREAD, pierce));
+    }
+    fireCooldown = FIRE_COOLDOWN;
+  } else {
+    bullets.push(createBullet(ship.x, ship.y, angle, pierce));
+    fireCooldown = FIRE_COOLDOWN;
+  }
+  playShootSound();
+}
+
+// ---------- 陨石 ----------
+/** 【外观优化】生成不规则多边形轮廓与坑点（仅视觉，不影响碰撞半径） */
+function generateMeteorShape(type, radius) {
+  const isLarge = type === 'large';
+  // 大陨石：更多顶点、棱角分明；小陨石：较少顶点、块状
+  const vertexCount = isLarge
+    ? 8 + Math.floor(Math.random() * 3)
+    : 5 + Math.floor(Math.random() * 2);
+  const points = [];
+  for (let i = 0; i < vertexCount; i++) {
+    const baseAngle = (i / vertexCount) * Math.PI * 2;
+    const jitter = (Math.random() - 0.5) * (isLarge ? 0.55 : 0.4);
+    const dist = radius * (isLarge ? 0.78 + Math.random() * 0.24 : 0.82 + Math.random() * 0.18);
+    points.push({
+      x: Math.cos(baseAngle + jitter) * dist,
+      y: Math.sin(baseAngle + jitter) * dist
+    });
+  }
+  const craterCount = isLarge ? 3 + Math.floor(Math.random() * 4) : 2 + Math.floor(Math.random() * 2);
+  const craters = [];
+  for (let i = 0; i < craterCount; i++) {
+    craters.push({
+      x: (Math.random() - 0.5) * radius * 1.3,
+      y: (Math.random() - 0.5) * radius * 1.3,
+      r: (isLarge ? 2.5 : 1.5) + Math.random() * (isLarge ? 4 : 2.5),
+      depth: 0.35 + Math.random() * 0.45
+    });
+  }
+  return {
+    points,
+    craters,
+    style: isLarge ? 'angular' : 'chunky'
+  };
+}
+
+/** 【外观优化】绘制多边形路径辅助 */
+function traceMeteorPolygon(points) {
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    if (i === 0) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
+  });
+  ctx.closePath();
+}
+
+function createMeteor(x, y, type, speedMult) {
+  const isLarge = type === 'large';
+  const radius = isLarge ? METEOR_LARGE_RADIUS : METEOR_SMALL_RADIUS;
+  const baseSpeed = isLarge ? METEOR_LARGE_SPEED : METEOR_SMALL_SPEED;
+  const mult = speedMult || 1;
+  const speed = baseSpeed * mult;
+  const angle = Math.atan2(CANVAS_H / 2 - y, CANVAS_W / 2 - x) + (Math.random() - 0.5) * 0.6;
+  const shape = generateMeteorShape(type, radius); // 【外观优化】随机轮廓
+  return {
+    x, y,
+    vx: Math.cos(angle) * speed,
+    vy: Math.sin(angle) * speed,
+    radius,
+    type,
+    hp: isLarge ? METEOR_LARGE_HP : METEOR_SMALL_HP,
+    rotation: Math.random() * Math.PI * 2,
+    // 【画面】缓慢自转，每块速度随机（仅视觉，碰撞半径不变）
+    rotSpeed: (Math.random() < 0.5 ? -1 : 1) * (0.006 + Math.random() * 0.028),
+    shapePoints: shape.points,
+    craters: shape.craters,       // 【外观优化】坑点纹理
+    shapeStyle: shape.style
+  };
+}
+
+/** 从屏幕四边随机位置生成陨石；largeRatio / speedMult 可选，供难度阶段与陨石潮复用 */
+function spawnMeteor(largeRatio, speedMult) {
+  const edge = Math.floor(Math.random() * 4);
+  let x, y;
+  const margin = 30;
+  switch (edge) {
+    case 0: x = Math.random() * CANVAS_W; y = -margin; break;           // 上
+    case 1: x = CANVAS_W + margin; y = Math.random() * CANVAS_H; break; // 右
+    case 2: x = Math.random() * CANVAS_W; y = CANVAS_H + margin; break;  // 下
+    default: x = -margin; y = Math.random() * CANVAS_H; break;            // 左
+  }
+  const ratio = largeRatio !== undefined ? largeRatio : getLargeMeteorRatio();
+  const type = Math.random() < ratio ? 'large' : 'small';
+  meteors.push(createMeteor(x, y, type, speedMult !== undefined ? speedMult : getMeteorSpeedMult()));
+}
+
+// ---------- 【节奏】动态难度阶段 ----------
+/** 当前难度阶段：1=基础期 2=首 BOSS 后 3=首 BOSS 后再存活一段时间 */
+function getDifficultyPhase() {
+  if (!boss1Defeated) return 1;
+  if (gameTime - boss1DefeatedAt >= PHASE3_DELAY_AFTER_BOSS1_SEC * 60) return 3;
+  return 2;
+}
+
+function getMeteorSpeedMult() {
+  return getDifficultyPhase() >= 2 ? PHASE2_METEOR_SPEED_MULT : 1;
+}
+
+function getLargeMeteorRatio() {
+  return getDifficultyPhase() >= 3 ? PHASE3_LARGE_METEOR_RATIO : 0.7;
+}
+
+function getDropChance() {
+  return getDifficultyPhase() >= 2 ? DROP_SPAWN_CHANCE + PHASE2_DROP_BONUS : DROP_SPAWN_CHANCE;
+}
+
+/** 综合时间曲线 + 分数档位 + 阶段加成，计算当前刷新间隔 */
+function getEffectiveSpawnInterval() {
+  let interval = BASE_SPAWN_INTERVAL - gameTime * DIFFICULTY_RAMP - getScoreSpawnReduction();
+  const phase = getDifficultyPhase();
+  if (phase >= 2) interval -= PHASE2_SPAWN_REDUCE;
+  if (phase >= 3) interval -= PHASE3_SPAWN_REDUCE;
+  return Math.max(MIN_SPAWN_INTERVAL, interval);
+}
+
+/** 单次刷新额外多刷几颗（阶段三密度更高） */
+function getExtraSpawnsOnTick() {
+  const phase = getDifficultyPhase();
+  let extra = 0;
+  if (phase === 2 && Math.random() < PHASE2_BONUS_SPAWN_CHANCE) extra++;
+  if (phase >= 3) {
+    if (Math.random() < PHASE3_EXTRA_SPAWN_CHANCE) extra++;
+    if (Math.random() < PHASE3_TRIPLE_SPAWN_CHANCE) extra++;
+  } else if (gameTime > DOUBLE_SPAWN_TIME && Math.random() < 0.18) {
+    extra++; // 保留原有后期双重刷新，与阶段系统叠加
+  }
+  return extra;
+}
+
+/** 【节奏】紧张度（0~1），驱动背景星星亮度与边缘红晕 */
+function getTensionLevel() {
+  const timePart = Math.min(TENSION_STAR_BRIGHTNESS_MAX, gameTime * TENSION_STAR_BRIGHTNESS_RAMP);
+  const phase = getDifficultyPhase();
+  const phaseBonus = phase >= 2 ? 0.08 : 0;
+  const phase3Bonus = phase >= 3 ? 0.1 : 0;
+  return Math.min(TENSION_STAR_BRIGHTNESS_MAX + 0.18, timePart + phaseBonus + phase3Bonus);
+}
+
+/** 【节奏】陨石潮：击败第一 BOSS 后周期性从四方向涌入 */
+function updateMeteorSwarm() {
+  swarmWarningActive = false;
+  if (!boss1Defeated || boss || nextSwarmGameTime <= 0) return;
+
+  const warningFrames = SWARM_WARNING_SEC * 60;
+  const timeToSwarm = nextSwarmGameTime - gameTime;
+  if (timeToSwarm > 0 && timeToSwarm <= warningFrames) {
+    swarmWarningActive = true;
+  }
+
+  if (gameTime < nextSwarmGameTime) return;
+
+  if (swarmMeteorsLeft <= 0) {
+    swarmMeteorsLeft = SWARM_COUNT_MIN + Math.floor(Math.random() * (SWARM_COUNT_MAX - SWARM_COUNT_MIN + 1));
+    swarmSpawnCooldown = 0;
+  }
+
+  swarmSpawnCooldown--;
+  if (swarmSpawnCooldown <= 0 && swarmMeteorsLeft > 0) {
+    spawnMeteor(getLargeMeteorRatio(), getMeteorSpeedMult());
+    swarmMeteorsLeft--;
+    const remaining = Math.max(1, swarmMeteorsLeft);
+    swarmSpawnCooldown = Math.max(1, Math.ceil(SWARM_SPAWN_SPREAD_FRAMES / remaining));
+  }
+
+  if (swarmMeteorsLeft <= 0) {
+    nextSwarmGameTime = gameTime + SWARM_INTERVAL_SEC * 60;
+  }
+}
+
+/** 【节奏】陨石潮预警文字 */
+function drawSwarmWarning() {
+  if (!swarmWarningActive) return;
+  const pulse = 1 + Math.sin(gameTime * 0.18) * 0.06;
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.globalAlpha = 0.85 + Math.sin(gameTime * 0.25) * 0.15;
+  ctx.font = 'bold ' + Math.floor(28 * pulse) + 'px "Courier New", monospace';
+  ctx.fillStyle = '#ff5252';
+  ctx.fillText('⚠  陨石潮来袭  ⚠', CANVAS_W / 2, CANVAS_H / 2 - 28);
+  ctx.font = '14px "Courier New", monospace';
+  ctx.fillStyle = '#ffab91';
+  ctx.fillText('四面八方 · 准备应对！', CANVAS_W / 2, CANVAS_H / 2 + 2);
+  ctx.textAlign = 'left';
+  ctx.restore();
+}
+
+/** 【画面】后期边缘淡红氛围光晕（不遮挡中心游戏区） */
+function drawTensionVignette() {
+  const seconds = gameTime / 60;
+  if (seconds < TENSION_VIGNETTE_START_SEC) return;
+  const progress = Math.min(1, (seconds - TENSION_VIGNETTE_START_SEC) / 120);
+  const phaseBoost = getDifficultyPhase() >= 3 ? 0.35 : getDifficultyPhase() >= 2 ? 0.15 : 0;
+  const alpha = Math.min(TENSION_VIGNETTE_MAX_ALPHA, progress * TENSION_VIGNETTE_MAX_ALPHA + phaseBoost * TENSION_VIGNETTE_MAX_ALPHA);
+  if (alpha <= 0.01) return;
+
+  const cx = CANVAS_W / 2;
+  const cy = CANVAS_H / 2;
+  const radius = Math.max(CANVAS_W, CANVAS_H) * 0.72;
+  const grad = ctx.createRadialGradient(cx, cy, radius * 0.35, cx, cy, radius);
+  grad.addColorStop(0, 'rgba(255, 40, 40, 0)');
+  grad.addColorStop(0.55, 'rgba(180, 20, 30, 0)');
+  grad.addColorStop(1, 'rgba(140, 10, 20, ' + alpha + ')');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+}
+
+// ---------- 【新增】BOSS 系统 ----------
+function createBoss(tier) {
+  const maxHp = tier === 2 ? BOSS2_MAX_HP : BOSS_MAX_HP;
+  return {
+    tier,
+    x: CANVAS_W / 2,
+    y: -BOSS_RADIUS - 30,
+    hp: maxHp,
+    maxHp,
+    shootTimer: 0,
+    moveTimer: 0,
+    targetX: CANVAS_W / 2,
+    entered: false,
+    patternPhase: 0,       // 【拓展】第二 BOSS 弹幕模式相位
+    targetY: null          // 【节奏】第二 BOSS 纵向目标
+  };
+}
+
+function spawnBoss(tier) {
+  boss = createBoss(tier);
+  bossAlertTimer = BOSS_ALERT_DURATION;
+  addScreenShake(10);
+  playBossAppearSound();
+}
+
+/** 【新增】检测是否到达 BOSS 出场时间 */
+function checkBossSpawn() {
+  const seconds = Math.floor(gameTime / 60);
+  if (!boss && !boss1Triggered && seconds >= BOSS_SPAWN_TIME_SEC) {
+    boss1Triggered = true;
+    spawnBoss(1);
+  }
+  // 【拓展】击败第一只 BOSS 后再存活 BOSS2_DELAY_AFTER_BOSS1_SEC 秒，第二强化 BOSS 登场
+  if (!boss && boss1Defeated && !boss2Triggered &&
+      gameTime - boss1DefeatedAt >= BOSS2_DELAY_AFTER_BOSS1_SEC * 60) {
+    boss2Triggered = true;
+    spawnBoss(2);
+  }
+}
+
+function fireBossBullet() {
+  if (!boss || !ship) return;
+  const angle = Math.atan2(ship.y - boss.y, ship.x - boss.x);
+  const speed = boss.tier === 2 ? BOSS2_BULLET_SPEED : BOSS_BULLET_SPEED;
+  const spawnY = boss.y + BOSS_RADIUS * 0.5;
+
+  if (boss.tier === 1) {
+    // 第一 BOSS：三向扇形弹幕
+    for (let i = -1; i <= 1; i++) {
+      const a = angle + i * 0.18;
+      bossBullets.push({
+        x: boss.x, y: spawnY,
+        vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, life: 240
+      });
+    }
+  } else {
+    // 【拓展+节奏】第二 BOSS：五向扇形 + 环形 + 侧向扫射 + 螺旋弹幕
+    boss.patternPhase = (boss.patternPhase || 0) + 1;
+    for (let i = -2; i <= 2; i++) {
+      const a = angle + i * 0.14;
+      bossBullets.push({
+        x: boss.x, y: spawnY,
+        vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, life: 240
+      });
+    }
+    if (boss.patternPhase % 2 === 0) {
+      for (let i = -1; i <= 1; i++) {
+        const a = angle + i * 0.32;
+        bossBullets.push({
+          x: boss.x, y: spawnY,
+          vx: Math.cos(a) * speed * 1.15, vy: Math.sin(a) * speed * 1.15, life: 200
+        });
+      }
+    }
+    if (boss.patternPhase % 3 === 0) {
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2 + gameTime * 0.015;
+        bossBullets.push({
+          x: boss.x, y: boss.y,
+          vx: Math.cos(a) * speed * 0.85, vy: Math.sin(a) * speed * 0.85, life: 280
+        });
+      }
+    }
+    if (boss.patternPhase % 5 === 0) {
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + boss.patternPhase * 0.4;
+        bossBullets.push({
+          x: boss.x, y: boss.y,
+          vx: Math.cos(a) * speed * 0.7, vy: Math.sin(a) * speed * 0.7, life: 260
+        });
+      }
+    }
+  }
+}
+
+function updateBoss() {
+  if (!boss) return;
+
+  // 从上方缓慢进入战场
+  if (!boss.entered) {
+    boss.y += BOSS_SPEED * 0.8;
+    if (boss.y >= BOSS_RADIUS + 40) {
+      boss.y = BOSS_RADIUS + 40;
+      boss.entered = true;
+    }
+    return;
+  }
+
+  // 缓慢左右移动（第二 BOSS 更灵活：更快变向 + 纵向机动）
+  boss.moveTimer++;
+  const moveInterval = boss.tier === 2 ? BOSS2_MOVE_INTERVAL : 120;
+  if (boss.moveTimer >= moveInterval) {
+    boss.moveTimer = 0;
+    boss.targetX = BOSS_RADIUS + 40 + Math.random() * (CANVAS_W - BOSS_RADIUS * 2 - 80);
+    if (boss.tier === 2) {
+      const baseY = BOSS_RADIUS + 40;
+      boss.targetY = baseY + (Math.random() - 0.5) * BOSS2_VERTICAL_RANGE * 2;
+    }
+  }
+  const lerp = boss.tier === 2 ? BOSS2_MOVE_LERP : 0.015;
+  boss.x += (boss.targetX - boss.x) * lerp;
+  if (boss.tier === 2 && boss.targetY != null) {
+    boss.y += (boss.targetY - boss.y) * lerp * 0.55;
+    const minY = BOSS_RADIUS + 28;
+    const maxY = BOSS_RADIUS + 40 + BOSS2_VERTICAL_RANGE;
+    boss.y = Math.max(minY, Math.min(maxY, boss.y));
+  }
+
+  // 定时发射弹幕（第二 BOSS 间隔更短）
+  boss.shootTimer++;
+  const shootInterval = boss.tier === 2 ? BOSS2_BULLET_INTERVAL : BOSS_BULLET_INTERVAL;
+  if (boss.shootTimer >= shootInterval) {
+    boss.shootTimer = 0;
+    fireBossBullet();
+  }
+}
+
+function updateBossBullets() {
+  for (let i = bossBullets.length - 1; i >= 0; i--) {
+    const bb = bossBullets[i];
+    bb.x += bb.vx;
+    bb.y += bb.vy;
+    bb.life--;
+    if (bb.life <= 0 || bb.x < -20 || bb.x > CANVAS_W + 20 || bb.y < -20 || bb.y > CANVAS_H + 20) {
+      bossBullets.splice(i, 1);
+      continue;
+    }
+    // BOSS 弹幕 vs 飞船
+    if (ship.invincible <= 0 && circleCollision(ship, bb, SHIP_SIZE * 0.6, BOSS_BULLET_SIZE)) {
+      if (shieldActive) {
+        shieldActive = false;
+        activeEquipments = activeEquipments.filter(e => e.type !== 'shield');
+        ship.invincible = SHIP_INVINCIBLE_TIME;
+        createExplosion(ship.x, ship.y, '#00e676', 12);
+        playShieldBreakSound();
+      } else {
+        ship.hp--;
+        ship.invincible = SHIP_INVINCIBLE_TIME;
+        combo = 0;
+        comboTimer = 0;
+        addDamageFlash();
+        createExplosion(ship.x, ship.y, '#ff5252', 10);
+        playHurtSound();
+        if (ship.hp <= 0) {
+          endGame();
+          return;
+        }
+      }
+      bossBullets.splice(i, 1);
+    }
+  }
+}
+
+/** 【新增】BOSS 死亡大爆炸粒子（慢消散） */
+function createBossDeathExplosion(x, y) {
+  const colors = ['#ff5722', '#ff9800', '#ffeb3b', '#e040fb', '#7ec8ff'];
+  for (let i = 0; i < BOSS_EXPLODE_PARTICLE_COUNT; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * 4 + 0.5;
+    bossExplosionParticles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: Math.random() * 80 + 100,
+      maxLife: 180,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      size: Math.random() * 5 + 3
+    });
+  }
+}
+
+function destroyBoss() {
+  if (!boss) return;
+  const tier = boss.tier;
+  if (tier === 1) {
+    runStats.boss1Killed = true;
+    boss1Defeated = true;
+    boss1DefeatedAt = gameTime;
+    nextSwarmGameTime = gameTime + SWARM_FIRST_DELAY_SEC * 60; // 【节奏】安排首次陨石潮
+  }
+  if (tier === 2) runStats.boss2Killed = true;
+  runStats.bossKilled = true;
+  runStats.hpAtBossKill = ship.hp;
+  const reward = tier === 2 ? BOSS2_SCORE_REWARD : BOSS_SCORE_REWARD;
+  lastBossDefeatReward = reward;
+  registerKill(boss.x, boss.y, reward, true);
+  createBossDeathExplosion(boss.x, boss.y);
+  playBossDeathSound();
+  bossDefeatTimer = BOSS_DEFEAT_DURATION;
+  boss = null;
+  bossBullets = [];
+  checkAchievements();
+}
+
+function clearBossState() {
+  boss = null;
+  bossBullets = [];
+  bossAlertTimer = 0;
+  bossDefeatTimer = 0;
+  boss1Triggered = false;
+  boss2Triggered = false;
+  boss1Defeated = false;
+  boss1DefeatedAt = 0;
+  lastBossDefeatReward = 0;
+  bossExplosionParticles = [];
+  nextSwarmGameTime = 0;
+  swarmMeteorsLeft = 0;
+  swarmSpawnCooldown = 0;
+  swarmWarningActive = false;
+}
+
+// ---------- 【新增】装备掉落 ----------
+function spawnDrop(x, y) {
+  const def = EQUIPMENT_LIST[Math.floor(Math.random() * EQUIPMENT_LIST.length)];
+  drops.push({
+    x, y,
+    type: def.id,
+    color: def.color,
+    life: DROP_LIFETIME,
+    pulse: Math.random() * Math.PI * 2
+  });
+}
+
+function hasEquipment(typeId) {
+  return activeEquipments.some(e => e.type === typeId);
+}
+
+function activateEquipment(typeId) {
+  const def = EQUIPMENT_TYPES[typeId];
+  if (!def) return;
+
+  // 【拓展】回血装置：即时恢复 1 点生命，不进入持续装备列表
+  if (def.instant) {
+    runStats.equipTypes[typeId] = true;
+    lifetimeStats.totalPickups = (lifetimeStats.totalPickups || 0) + 1;
+    saveLifetimeStats();
+    unlockAchievement('first_pickup');
+    if (ship.hp < SHIP_MAX_HP) {
+      ship.hp++;
+      scorePopups.push({
+        x: ship.x, y: ship.y - 24,
+        text: '+1 HP', life: 45, maxLife: 45, color: '#69f0ae', vy: -0.9
+      });
+    } else {
+      scorePopups.push({
+        x: ship.x, y: ship.y - 24,
+        text: '生命已满', life: 40, maxLife: 40, color: '#69f0ae', vy: -0.8
+      });
+    }
+    playPickupSound();
+    createPickupFlash(ship.x, ship.y, def.color);
+    checkAchievements();
+    return;
+  }
+
+  const existing = activeEquipments.find(e => e.type === typeId);
+  if (existing) {
+    existing.remaining = def.duration; // 重复拾取刷新持续时间
+  } else {
+    activeEquipments.push({ type: typeId, remaining: def.duration });
+  }
+  if (typeId === 'shield') shieldActive = true;
+  runStats.equipTypes[typeId] = true; // 【成就】单局装备收集
+  lifetimeStats.totalPickups = (lifetimeStats.totalPickups || 0) + 1;
+  saveLifetimeStats();
+  unlockAchievement('first_pickup');
+  scorePopups.push({
+    x: ship.x, y: ship.y - 20,
+    text: EQUIPMENT_TYPES[typeId].name + '!',
+    life: 40, maxLife: 40, color: EQUIPMENT_TYPES[typeId].color, vy: -0.8
+  });
+  playPickupSound();
+  // 【画面】拾取瞬间扩散闪光
+  createPickupFlash(ship.x, ship.y, def.color);
+}
+
+/** 【画面】装备拾取扩散闪光 */
+function createPickupFlash(x, y, color) {
+  pickupFlashes.push({
+    x, y, color,
+    radius: 6,
+    maxRadius: 48,
+    life: 22,
+    maxLife: 22
+  });
+}
+
+/** 【拓展】根据当前分数累计缩短陨石刷新间隔 */
+function getScoreSpawnReduction() {
+  let total = 0;
+  for (const tier of SCORE_SPAWN_TIERS) {
+    if (score >= tier.score) total += tier.reduce;
+  }
+  return total;
+}
+
+/** 【拓展】点到线段最短距离（激光束碰撞判定） */
+function pointToSegmentDistance(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return Math.hypot(px - x1, py - y1);
+  let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+}
+
+/** 【拓展】从飞船沿瞄准角延伸至画布边缘，得到贯穿全屏激光端点 */
+function getLaserEndpoints(sx, sy, angle) {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const ts = [];
+  if (Math.abs(cos) > 0.001) {
+    ts.push((0 - sx) / cos);
+    ts.push((CANVAS_W - sx) / cos);
+  }
+  if (Math.abs(sin) > 0.001) {
+    ts.push((0 - sy) / sin);
+    ts.push((CANVAS_H - sy) / sin);
+  }
+  const valid = ts.filter(t => {
+    const x = sx + t * cos;
+    const y = sy + t * sin;
+    return x >= -1 && x <= CANVAS_W + 1 && y >= -1 && y <= CANVAS_H + 1;
+  });
+  const tMin = Math.min(...valid);
+  const tMax = Math.max(...valid);
+  return {
+    x1: sx + tMin * cos, y1: sy + tMin * sin,
+    x2: sx + tMax * cos, y2: sy + tMax * sin
+  };
+}
+
+/** 【拓展】发射一条贯穿全屏激光并造成伤害 */
+function fireLaserBeam() {
+  if (!ship) return;
+  const angle = getAimAngle();
+  const { x1, y1, x2, y2 } = getLaserEndpoints(ship.x, ship.y, angle);
+  laserBeams.push({ x1, y1, x2, y2, life: LASER_VISUAL_LIFE, maxLife: LASER_VISUAL_LIFE });
+
+  for (let j = meteors.length - 1; j >= 0; j--) {
+    const m = meteors[j];
+    const dist = pointToSegmentDistance(m.x, m.y, x1, y1, x2, y2);
+    if (dist < m.radius + LASER_BEAM_WIDTH * 0.5) {
+      m.hp--;
+      createHitSparks(m.x, m.y, '#00e5ff');
+      if (m.hp <= 0) destroyMeteor(j, true);
+    }
+  }
+
+  if (boss) {
+    const dist = pointToSegmentDistance(boss.x, boss.y, x1, y1, x2, y2);
+    if (dist < BOSS_RADIUS + LASER_BEAM_WIDTH * 0.5) {
+      boss.hp--;
+      createHitSparks(boss.x, boss.y, '#00e5ff');
+      if (boss.hp <= 0) destroyBoss();
+    }
+  }
+}
+
+/** 【拓展】绘制激光束视觉效果 */
+function drawLaserBeams() {
+  for (const beam of laserBeams) {
+    const alpha = beam.life / beam.maxLife;
+    ctx.save();
+    ctx.globalAlpha = 0.35 + alpha * 0.65;
+    ctx.strokeStyle = '#00e5ff';
+    ctx.lineWidth = LASER_BEAM_WIDTH;
+    ctx.shadowColor = '#00e5ff';
+    ctx.shadowBlur = 16;
+    ctx.beginPath();
+    ctx.moveTo(beam.x1, beam.y1);
+    ctx.lineTo(beam.x2, beam.y2);
+    ctx.stroke();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#fff';
+    ctx.globalAlpha = alpha;
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.moveTo(beam.x1, beam.y1);
+    ctx.lineTo(beam.x2, beam.y2);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function clearEquipmentState() {
+  drops = [];
+  activeEquipments = [];
+  shieldActive = false;
+  laserBeams = [];
+  laserFireCooldown = 0;
+}
+
+/** 【新增】更新装备倒计时，到期自动移除 */
+function updateActiveEquipments() {
+  for (let i = activeEquipments.length - 1; i >= 0; i--) {
+    activeEquipments[i].remaining--;
+    if (activeEquipments[i].remaining <= 0) {
+      if (activeEquipments[i].type === 'shield') shieldActive = false;
+      activeEquipments.splice(i, 1);
+    }
+  }
+}
+
+// ---------- 粒子效果 ----------
+function createExplosion(x, y, color, count) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * 3 + 1;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: Math.random() * 30 + 15,
+      maxLife: 45,
+      color,
+      size: Math.random() * 3 + 2
+    });
+  }
+}
+
+/** 【画面】子弹命中小型火花，一闪消散 */
+function createHitSparks(x, y, color) {
+  const sparkColor = color || '#ffeb3b';
+  for (let i = 0; i < 7; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 1.5 + Math.random() * 2.5;
+    sparks.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 6 + Math.floor(Math.random() * 8),
+      maxLife: 14,
+      color: sparkColor,
+      size: 1 + Math.random() * 2
+    });
+  }
+}
+
+// ---------- 碰撞检测 ----------
+function distSq(x1, y1, x2, y2) {
+  const dx = x1 - x2, dy = y1 - y2;
+  return dx * dx + dy * dy;
+}
+
+function circleCollision(a, b, rA, rB) {
+  const r = rA + rB;
+  return distSq(a.x, a.y, b.x, b.y) < r * r;
+}
+
+// ---------- 【体验优化】手感反馈工具 ----------
+function addScreenShake(amount) {
+  screenShake = Math.min(screenShake + amount, 18);
+}
+
+function addDamageFlash() {
+  damageFlash = 14;
+  addScreenShake(6);
+}
+
+function getComboMultiplier() {
+  if (combo < 2) return 1;
+  return Math.min(2, 1 + (combo - 1) * 0.25);
+}
+
+/** 注册一次击杀：连击、计分飘字、屏幕反馈 */
+function registerKill(x, y, baseScore, isBoss) {
+  combo++;
+  comboTimer = COMBO_TIMEOUT;
+  if (combo > maxCombo) maxCombo = combo;
+  killCount++;
+
+  const mult = getComboMultiplier();
+  const earned = Math.floor(baseScore * mult);
+  score += earned;
+
+  const popColor = isBoss ? '#ffd700' : (mult > 1 ? '#ff9800' : '#ffeb3b');
+  let popText = '+' + earned;
+  if (mult > 1) popText += ' x' + mult.toFixed(1);
+  scorePopups.push({ x, y, text: popText, life: SCORE_POPUP_LIFE, maxLife: SCORE_POPUP_LIFE, color: popColor, vy: -1.2 });
+
+  if (combo >= 3) playComboSound(Math.min(combo, COMBO_MAX_MULT));
+  if (isBoss) addScreenShake(14);
+  else if (combo >= 5) addScreenShake(3);
+  checkAchievements();
+}
+
+function updateJuice() {
+  screenShake *= 0.82;
+  if (screenShake < 0.3) screenShake = 0;
+  if (damageFlash > 0) damageFlash--;
+  if (comboTimer > 0) {
+    comboTimer--;
+    if (comboTimer <= 0) combo = 0;
+  }
+  for (let i = scorePopups.length - 1; i >= 0; i--) {
+    const p = scorePopups[i];
+    p.y += p.vy;
+    p.life--;
+    if (p.life <= 0) scorePopups.splice(i, 1);
+  }
+}
+
+function trimParticles() {
+  while (particles.length > MAX_PARTICLES) particles.shift();
+}
+
+function togglePause() {
+  if (gameState !== STATE.PLAYING && gameState !== STATE.PAUSED) return;
+  isPaused = !isPaused;
+  gameState = isPaused ? STATE.PAUSED : STATE.PLAYING;
+  pauseOverlay.classList.toggle('show', isPaused);
+  btnPause.textContent = isPaused ? '继续' : '暂停';
+}
+
+// ---------- 绘制函数（像素简约风格） ----------
+
+/** 绘制星空背景（远/近两层视差星星 + 随紧张度渐亮） */
+function drawBackground() {
+  ctx.fillStyle = '#0a0814';
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  const grad = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
+  grad.addColorStop(0, 'rgba(20, 10, 40, 0.6)');
+  grad.addColorStop(1, 'rgba(5, 5, 15, 0.3)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  const tension = (gameState === STATE.PLAYING || gameState === STATE.PAUSED) ? getTensionLevel() : 0;
+  const starBoost = 1 + tension;
+
+  // 【画面】远景星层（慢、暗）
+  for (const s of bgStarsFar) {
+    ctx.globalAlpha = Math.min(1, s.alpha * starBoost);
+    ctx.fillStyle = tension > 0.15 ? '#99aacc' : '#7788aa';
+    ctx.fillRect(s.x, s.y, s.size, s.size);
+  }
+  // 【画面】近景星层（快、亮）
+  for (const s of bgStarsNear) {
+    ctx.globalAlpha = Math.min(1, s.alpha * starBoost * 1.08);
+    ctx.fillStyle = tension > 0.2 ? '#dde6ff' : '#bbccff';
+    ctx.fillRect(s.x, s.y, s.size, s.size);
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** 【外观优化】绘制像素科幻飞船（碰撞范围不变，仍 centered at s.x/s.y） */
+function drawShip(s) {
+  ctx.save();
+  ctx.translate(s.x, s.y);
+  ctx.rotate(s.angle + Math.PI / 2);
+
+  // 【画面】受击白色闪烁（前 0.6 秒，无敌帧逻辑不变）
+  const inHitFlash = s.invincible > SHIP_INVINCIBLE_TIME - HIT_FLASH_FRAMES;
+
+  // --- 尾部推进火焰（分层动画，移动时更长） ---
+  const flicker1 = Math.sin(gameTime * 0.38);
+  const flicker2 = Math.sin(gameTime * 0.52 + 1.4);
+  const baseLen = s.thrusting ? 13 : 7;
+  const outerH = baseLen + Math.floor(flicker1 * 2.5 + 2);
+  const midH = Math.max(4, outerH - 3);
+  const innerH = Math.max(3, midH - 3);
+  const coreH = Math.max(2, innerH - 2);
+  const ey = 11;
+
+  ctx.fillStyle = 'rgba(255, 87, 34, 0.22)';
+  ctx.fillRect(-7, ey, 14, outerH + 3);
+  ctx.fillStyle = 'rgba(255, 152, 0, 0.45)';
+  ctx.fillRect(-6, ey, 12, outerH);
+  ctx.fillStyle = '#ff9800';
+  ctx.fillRect(-5, ey + 1, 10, midH);
+  ctx.fillStyle = '#ff5722';
+  ctx.fillRect(-4, ey + 2, 8, innerH);
+  ctx.fillStyle = '#ffeb3b';
+  ctx.fillRect(-2, ey + 3, 4, coreH);
+  if (s.thrusting) {
+    ctx.fillStyle = 'rgba(255, 193, 7, 0.35)';
+    ctx.fillRect(-8, ey + 3, 2, 5 + flicker2 * 2);
+    ctx.fillRect(6, ey + 3, 2, 5 + flicker1 * 2);
+  }
+
+  // --- 左机翼 ---
+  ctx.fillStyle = '#01497c';
+  ctx.fillRect(-15, 0, 7, 4);
+  ctx.fillRect(-14, -2, 6, 12);
+  ctx.fillRect(-12, 4, 9, 6);
+  ctx.fillStyle = '#0288d1';
+  ctx.fillRect(-13, 0, 5, 8);
+  ctx.fillStyle = '#01579b';
+  ctx.fillRect(-12, 5, 6, 1);
+  ctx.fillRect(-11, 8, 5, 1);
+  ctx.fillStyle = '#4fc3f7';
+  ctx.fillRect(-14, 2, 2, 2);
+
+  // --- 右机翼 ---
+  ctx.fillStyle = '#01497c';
+  ctx.fillRect(8, 0, 7, 4);
+  ctx.fillRect(8, -2, 6, 12);
+  ctx.fillRect(3, 4, 9, 6);
+  ctx.fillStyle = '#0288d1';
+  ctx.fillRect(8, 0, 5, 8);
+  ctx.fillStyle = '#01579b';
+  ctx.fillRect(7, 5, 6, 1);
+  ctx.fillRect(6, 8, 5, 1);
+  ctx.fillStyle = '#4fc3f7';
+  ctx.fillRect(12, 2, 2, 2);
+
+  // --- 主机身 ---
+  ctx.fillStyle = '#263238';
+  ctx.fillRect(-6, -11, 12, 23);
+  ctx.fillStyle = '#455a64';
+  ctx.fillRect(-5, -10, 10, 21);
+  ctx.fillStyle = '#607d8b';
+  ctx.fillRect(-4, -9, 8, 19);
+  // 机身中线
+  ctx.fillStyle = '#78909c';
+  ctx.fillRect(-1, -11, 2, 22);
+  // 机身横向线条
+  ctx.fillStyle = '#37474f';
+  ctx.fillRect(-5, -1, 10, 1);
+  ctx.fillRect(-5, 4, 10, 1);
+  ctx.fillRect(-5, 8, 10, 1);
+
+  // --- 机头 / 尖锥 ---
+  ctx.fillStyle = '#0277bd';
+  ctx.fillRect(-4, -14, 8, 5);
+  ctx.fillStyle = '#4fc3f7';
+  ctx.fillRect(-3, -16, 6, 4);
+  ctx.fillRect(-2, -18, 4, 3);
+  ctx.fillStyle = '#b3e5fc';
+  ctx.fillRect(-1, -17, 2, 2);
+
+  // --- 驾驶舱 ---
+  ctx.fillStyle = '#01579b';
+  ctx.fillRect(-4, -9, 8, 8);
+  ctx.fillStyle = '#0288d1';
+  ctx.fillRect(-3, -8, 6, 6);
+  ctx.fillStyle = '#4dd0e1';
+  ctx.fillRect(-2, -7, 4, 4);
+  ctx.fillStyle = '#e0f7fa';
+  ctx.fillRect(-1, -6, 2, 2);
+
+  // --- 引擎喷口 ---
+  ctx.fillStyle = '#212121';
+  ctx.fillRect(-6, 10, 12, 3);
+  ctx.fillStyle = '#ff6f00';
+  ctx.fillRect(-4, 10, 8, 2);
+  ctx.fillStyle = '#37474f';
+  ctx.fillRect(-5, 9, 10, 1);
+
+  // 【画面】受击白色闪烁叠加层
+  if (inHitFlash && Math.floor(s.invincible / 2) % 2 === 0) {
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+    ctx.fillRect(-15, -19, 30, 38);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  if (shieldActive) {
+    ctx.strokeStyle = '#00e676';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, SHIP_SIZE + 6, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(0, 230, 118, 0.12)';
+    ctx.fill();
+  }
+}
+
+/** 绘制子弹（带淡淡发光描边） */
+function drawBullet(b) {
+  const color = b.pierceLeft > 0 ? '#e040fb' : '#ffeb3b';
+  const glowColor = b.pierceLeft > 0 ? 'rgba(224, 64, 251, 0.35)' : 'rgba(255, 235, 59, 0.35)';
+  ctx.fillStyle = glowColor;
+  ctx.fillRect(b.x - BULLET_SIZE, b.y - BULLET_SIZE, BULLET_SIZE * 2, BULLET_SIZE * 2);
+  ctx.fillStyle = color;
+  ctx.fillRect(b.x - BULLET_SIZE / 2, b.y - BULLET_SIZE / 2, BULLET_SIZE, BULLET_SIZE);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(b.x - 1, b.y - 1, 2, 2);
+}
+
+/** 【新增】绘制 BOSS 弹幕 */
+function drawBossBullet(bb) {
+  ctx.fillStyle = 'rgba(255, 80, 80, 0.3)';
+  ctx.beginPath();
+  ctx.arc(bb.x, bb.y, BOSS_BULLET_SIZE + 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ff4444';
+  ctx.beginPath();
+  ctx.arc(bb.x, bb.y, BOSS_BULLET_SIZE, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** 【新增】绘制 BOSS 本体 */
+function drawBoss(b) {
+  ctx.save();
+  ctx.translate(b.x, b.y);
+  const pulse = Math.sin(gameTime * 0.06) * 2;
+  const r = BOSS_RADIUS + pulse;
+
+  // 外圈能量环
+  ctx.strokeStyle = b.tier === 2 ? '#ff1744' : '#e040fb';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(0, 0, r + 6, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // 主体
+  ctx.fillStyle = b.tier === 2 ? '#4a0020' : '#2a1040';
+  ctx.fillRect(-r, -r * 0.7, r * 2, r * 1.4);
+  ctx.fillStyle = b.tier === 2 ? '#880e4f' : '#6a1b9a';
+  ctx.fillRect(-r + 8, -r * 0.55, r * 2 - 16, r * 1.1);
+  // 核心
+  ctx.fillStyle = '#ff4081';
+  ctx.fillRect(-16, -12, 32, 24);
+  ctx.fillStyle = '#f50057';
+  ctx.fillRect(-10, -6, 20, 12);
+  // 侧翼炮口
+  ctx.fillStyle = '#311b92';
+  ctx.fillRect(-r - 4, -8, 12, 16);
+  ctx.fillRect(r - 8, -8, 12, 16);
+  // 眼睛
+  ctx.fillStyle = '#ffeb3b';
+  ctx.fillRect(-20, -r * 0.35, 10, 10);
+  ctx.fillRect(10, -r * 0.35, 10, 10);
+
+  ctx.restore();
+}
+
+/** 【新增】画面上方 BOSS 血条 */
+function drawBossHPBar() {
+  if (!boss) return;
+  const barW = 360;
+  const barH = 14;
+  const bx = (CANVAS_W - barW) / 2;
+  const by = 12;
+  const ratio = Math.max(0, boss.hp / boss.maxHp);
+
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(bx - 2, by - 2, barW + 4, barH + 4);
+  ctx.fillStyle = '#333';
+  ctx.fillRect(bx, by, barW, barH);
+  ctx.fillStyle = ratio > 0.3 ? '#ff4081' : '#ff1744';
+  ctx.fillRect(bx, by, barW * ratio, barH);
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(bx, by, barW, barH);
+
+  ctx.fillStyle = '#fff';
+  ctx.font = '12px "Courier New", monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('BOSS  ' + boss.hp + ' / ' + boss.maxHp, CANVAS_W / 2, by + barH + 16);
+  ctx.textAlign = 'left';
+}
+
+/** 【手感】横幅文字停留动画透明度（淡入→保持→淡出） */
+function getBannerAlpha(timer, maxDuration) {
+  const elapsed = maxDuration - timer;
+  const fadeIn = Math.min(1, elapsed / 25);
+  const fadeOut = Math.min(1, timer / 35);
+  return Math.min(fadeIn, fadeOut);
+}
+
+/** 【手感】BOSS 登场 / 击败文字提示 */
+function drawBossBanners() {
+  ctx.textAlign = 'center';
+
+  if (bossAlertTimer > 0) {
+    const alpha = getBannerAlpha(bossAlertTimer, BOSS_ALERT_DURATION);
+    const pulse = 1 + Math.sin((BOSS_ALERT_DURATION - bossAlertTimer) * 0.07) * 0.04;
+    const isBoss2 = boss && boss.tier === 2;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = 'bold ' + Math.floor(34 * pulse) + 'px "Courier New", monospace';
+    ctx.fillStyle = isBoss2 ? '#d500f9' : '#ff1744';
+    ctx.fillText(isBoss2 ? '⚠  强化 BOSS 来袭  ⚠' : '⚠  BOSS 来袭  ⚠', CANVAS_W / 2, CANVAS_H / 2 - 36);
+    ctx.font = '15px "Courier New", monospace';
+    ctx.fillStyle = '#ff9800';
+    ctx.fillText(
+      isBoss2 ? '更高血量 · 复杂弹幕 · ' + BOSS2_SCORE_REWARD + ' 分奖励' : '击败 BOSS 获得高额奖励！',
+      CANVAS_W / 2, CANVAS_H / 2 + 4
+    );
+    ctx.restore();
+  }
+
+  if (bossDefeatTimer > 0) {
+    const alpha = getBannerAlpha(bossDefeatTimer, BOSS_DEFEAT_DURATION);
+    const pulse = 1 + Math.sin((BOSS_DEFEAT_DURATION - bossDefeatTimer) * 0.06) * 0.03;
+    const reward = lastBossDefeatReward || BOSS_SCORE_REWARD;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = 'bold ' + Math.floor(32 * pulse) + 'px "Courier New", monospace';
+    ctx.fillStyle = '#ffd700';
+    ctx.fillText('★  BOSS 已击败  ★', CANVAS_W / 2, CANVAS_H / 2 - 20);
+    ctx.font = '14px "Courier New", monospace';
+    ctx.fillStyle = '#7ec8ff';
+    ctx.fillText('+' + reward + ' 分 · 继续战斗！', CANVAS_W / 2, CANVAS_H / 2 + 14);
+    ctx.restore();
+  }
+
+  ctx.textAlign = 'left';
+}
+
+/** 绘制发光掉落物（柔和光晕） */
+function drawDrop(d) {
+  const glow = 0.5 + Math.sin(d.pulse) * 0.3;
+  ctx.save();
+  // 外层柔和光晕
+  ctx.globalAlpha = glow * 0.18;
+  ctx.fillStyle = d.color;
+  ctx.beginPath();
+  ctx.arc(d.x, d.y, 22, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = glow * 0.35;
+  ctx.beginPath();
+  ctx.arc(d.x, d.y, 14, 0, Math.PI * 2);
+  ctx.fill();
+  // 核心
+  ctx.globalAlpha = glow;
+  ctx.fillRect(d.x - 6, d.y - 6, 12, 12);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(d.x - 2, d.y - 2, 4, 4);
+  ctx.restore();
+}
+
+/** 【外观优化】绘制不规则多边形陨石（碰撞半径/逻辑不变） */
+function drawMeteor(m) {
+  ctx.save();
+  ctx.translate(m.x, m.y);
+  ctx.rotate(m.rotation);
+
+  const isLarge = m.type === 'large';
+  const pts = m.shapePoints;
+
+  // 投影阴影
+  ctx.save();
+  ctx.translate(3, 4);
+  ctx.globalAlpha = 0.22;
+  ctx.fillStyle = '#000';
+  traceMeteorPolygon(pts);
+  ctx.fill();
+  ctx.restore();
+
+  // 岩石主体底色
+  ctx.fillStyle = isLarge ? '#4e342e' : '#5d4037';
+  traceMeteorPolygon(pts);
+  ctx.fill();
+
+  // 内层色调（略缩小的多边形，增加体积感）
+  ctx.fillStyle = isLarge ? '#6d4c41' : '#795548';
+  ctx.save();
+  ctx.scale(0.88, 0.88);
+  traceMeteorPolygon(pts);
+  ctx.fill();
+  ctx.restore();
+
+  // 高光面（大陨石偏冷灰，小陨石偏暖褐）
+  ctx.fillStyle = isLarge ? 'rgba(161, 136, 127, 0.55)' : 'rgba(188, 170, 164, 0.5)';
+  ctx.beginPath();
+  const hiCount = isLarge ? 3 : 2;
+  for (let i = 0; i < hiCount; i++) {
+    const p = pts[i % pts.length];
+    ctx.rect(p.x * 0.35 - 3, p.y * 0.35 - 3, isLarge ? 7 : 5, isLarge ? 6 : 4);
+  }
+  ctx.fill();
+
+  // 坑点纹理（深浅不一）
+  for (const c of m.craters) {
+    ctx.fillStyle = 'rgba(25, 12, 8, ' + c.depth + ')';
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(90, 60, 45, ' + (c.depth * 0.6) + ')';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(120, 100, 85, 0.25)';
+    ctx.beginPath();
+    ctx.arc(c.x - c.r * 0.25, c.y - c.r * 0.25, c.r * 0.35, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 大陨石：棱角裂纹；小陨石：块状短裂纹
+  ctx.strokeStyle = isLarge ? '#3e2723' : '#4e342e';
+  ctx.lineWidth = isLarge ? 2 : 1;
+  if (isLarge) {
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x * 0.5, pts[0].y * 0.5);
+    ctx.lineTo(pts[Math.floor(pts.length / 2)].x * 0.4, pts[Math.floor(pts.length / 2)].y * 0.4);
+    ctx.moveTo(pts[2].x * 0.3, pts[2].y * 0.3);
+    ctx.lineTo(pts[pts.length - 1].x * 0.35, pts[pts.length - 1].y * 0.35);
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x * 0.4, pts[0].y * 0.4);
+    ctx.lineTo(pts[1].x * 0.35, pts[1].y * 0.35);
+    ctx.stroke();
+  }
+
+  // 外轮廓描边
+  ctx.strokeStyle = isLarge ? '#2c1810' : '#3e2723';
+  ctx.lineWidth = isLarge ? 2 : 1.5;
+  traceMeteorPolygon(pts);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+/** 绘制粒子 */
+function drawParticle(p) {
+  const alpha = p.life / p.maxLife;
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = p.color;
+  ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+  ctx.globalAlpha = 1;
+}
+
+/** 【画面】绘制子弹命中火花 */
+function drawSpark(s) {
+  const alpha = s.life / s.maxLife;
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = s.color;
+  ctx.fillRect(s.x - s.size / 2, s.y - s.size / 2, s.size, s.size);
+  ctx.globalAlpha = alpha * 0.45;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(s.x - 1, s.y - 1, 2, 2);
+  ctx.globalAlpha = 1;
+}
+
+/** 【画面】绘制装备拾取扩散闪光 */
+function drawPickupFlashes() {
+  for (const f of pickupFlashes) {
+    const t = 1 - f.life / f.maxLife;
+    const r = f.radius + (f.maxRadius - f.radius) * t;
+    const alpha = (f.life / f.maxLife) * 0.75;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = f.color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(f.x, f.y, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = alpha * 0.35;
+    ctx.fillStyle = f.color;
+    ctx.beginPath();
+    ctx.arc(f.x, f.y, r * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+/** 【新增】绘制 BOSS 死亡慢消散爆炸粒子 */
+function drawBossExplosionParticle(p) {
+  const alpha = (p.life / p.maxLife) * 0.85;
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = p.color;
+  ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+  ctx.globalAlpha = alpha * 0.4;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+  ctx.fillStyle = p.color;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+/** 【体验优化】绘制得分飘字 */
+function drawScorePopups() {
+  for (const p of scorePopups) {
+    const alpha = p.life / p.maxLife;
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = p.color;
+    ctx.font = 'bold 14px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(p.text, p.x, p.y);
+  }
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+}
+
+/** 【体验优化】受伤红屏 vignette */
+function drawDamageFlash() {
+  if (damageFlash <= 0) return;
+  const a = (damageFlash / 14) * 0.35;
+  const g = ctx.createRadialGradient(CANVAS_W / 2, CANVAS_H / 2, CANVAS_H * 0.2, CANVAS_W / 2, CANVAS_H / 2, CANVAS_H * 0.75);
+  g.addColorStop(0, 'rgba(255,0,0,0)');
+  g.addColorStop(1, 'rgba(255,40,40,' + a + ')');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+}
+
+/** 【体验优化】绘制瞄准辅助线（淡） */
+function drawAimLine() {
+  if (!ship || gameState !== STATE.PLAYING) return;
+  ctx.strokeStyle = 'rgba(126, 200, 255, 0.12)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 6]);
+  ctx.beginPath();
+  ctx.moveTo(ship.x, ship.y);
+  ctx.lineTo(mouseX, mouseY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+/** 绘制 HUD（左上角分数与生命值） */
+function drawHUD() {
+  ctx.font = '16px "Courier New", monospace';
+
+  ctx.fillStyle = '#7ec8ff';
+  ctx.fillText('分数: ' + score, 14, 26);
+  ctx.fillStyle = score > highScore ? '#ffd700' : '#7ec8ff';
+  ctx.fillText('最高: ' + highScore, 14, 46);
+
+  ctx.fillStyle = '#aaa';
+  ctx.fillText('生命:', 14, 70);
+  for (let i = 0; i < SHIP_MAX_HP; i++) {
+    ctx.fillStyle = i < ship.hp ? '#ff5252' : '#333';
+    ctx.fillRect(70 + i * 22, 56, 16, 16);
+  }
+
+  const seconds = Math.floor(gameTime / 60);
+  ctx.fillStyle = '#888';
+  ctx.fillText('时间: ' + seconds + 's', 14, 94);
+
+  // 连击显示
+  if (combo >= 2) {
+    ctx.fillStyle = '#ff9800';
+    ctx.font = 'bold 15px "Courier New", monospace';
+    ctx.fillText('连击 x' + combo + ' (' + getComboMultiplier().toFixed(1) + '倍)', 14, 116);
+    ctx.font = '16px "Courier New", monospace';
+  }
+
+  // BOSS 预告倒计时
+  let hudLineY = combo >= 2 ? 136 : 116;
+  if (!boss && !boss1Triggered && seconds >= BOSS_WARNING_SEC && seconds < BOSS_SPAWN_TIME_SEC) {
+    const left = BOSS_SPAWN_TIME_SEC - seconds;
+    ctx.fillStyle = left <= 3 ? '#ff5252' : '#ff9800';
+    ctx.font = '13px "Courier New", monospace';
+    ctx.fillText('⚠ BOSS ' + left + ' 秒后抵达', 14, hudLineY);
+    ctx.font = '16px "Courier New", monospace';
+    hudLineY += 20;
+  }
+  // 【拓展】第二 BOSS 预告（击败第一只后倒计时）
+  if (!boss && boss1Defeated && !boss2Triggered) {
+    const needFrames = BOSS2_DELAY_AFTER_BOSS1_SEC * 60;
+    const leftFrames = needFrames - (gameTime - boss1DefeatedAt);
+    if (leftFrames > 0 && leftFrames <= 30 * 60) {
+      const leftSec = Math.ceil(leftFrames / 60);
+      ctx.fillStyle = leftSec <= 10 ? '#d500f9' : '#ce93d8';
+      ctx.font = '13px "Courier New", monospace';
+      ctx.fillText('⚠ 强化 BOSS ' + leftSec + ' 秒后抵达', 14, hudLineY);
+      ctx.font = '16px "Courier New", monospace';
+    }
+  }
+}
+
+/** 【新增】右下角装备面板：显示生效装备名称与剩余秒数 */
+function drawEquipmentPanel() {
+  const panelW = 150;
+  const lineCount = Math.max(activeEquipments.length, 1);
+  const panelH = 36 + lineCount * 18;
+  const px = CANVAS_W - panelW - 10;
+  const py = CANVAS_H - panelH - 10;
+
+  ctx.fillStyle = 'rgba(10, 10, 30, 0.75)';
+  ctx.fillRect(px, py, panelW, panelH);
+  ctx.strokeStyle = '#555';
+  ctx.strokeRect(px, py, panelW, panelH);
+
+  ctx.fillStyle = '#7ec8ff';
+  ctx.font = '14px "Courier New", monospace';
+  ctx.fillText('装备', px + 8, py + 16);
+
+  if (activeEquipments.length === 0) {
+    ctx.fillStyle = '#555';
+    ctx.font = '12px "Courier New", monospace';
+    ctx.fillText('暂无', px + 8, py + 34);
+    return;
+  }
+
+  ctx.font = '12px "Courier New", monospace';
+  activeEquipments.forEach((eq, i) => {
+    const def = EQUIPMENT_TYPES[eq.type];
+    const secs = Math.ceil(eq.remaining / 60);
+    ctx.fillStyle = def.color;
+    ctx.fillText(def.name, px + 8, py + 34 + i * 18);
+    // 【手感】剩余 3 秒以内倒计时变黄提醒
+    ctx.fillStyle = secs <= 3 ? '#ffeb3b' : '#aaa';
+    if (secs <= 1 && Math.floor(gameTime / 8) % 2 === 0) ctx.fillStyle = '#ff9800';
+    ctx.fillText(secs + 's', px + panelW - 32, py + 34 + i * 18);
+  });
+}
+
+/** 【手感】绘制开始界面（排版美化） */
+function drawMenuOverlay() {
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.58)';
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  const pw = 440, ph = 210;
+  const px = (CANVAS_W - pw) / 2;
+  const py = (CANVAS_H - ph) / 2 - 16;
+
+  ctx.fillStyle = 'rgba(14, 14, 26, 0.94)';
+  ctx.fillRect(px, py, pw, ph);
+  ctx.strokeStyle = '#7ec8ff';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(px, py, pw, ph);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#7ec8ff';
+  ctx.font = 'bold 26px "Courier New", monospace';
+  ctx.fillText('像素陨石防线', CANVAS_W / 2, py + 42);
+  ctx.fillStyle = '#555';
+  ctx.font = '12px "Courier New", monospace';
+  ctx.fillText('— METEOR DEFENSE —', CANVAS_W / 2, py + 62);
+
+  ctx.strokeStyle = '#333';
+  ctx.beginPath();
+  ctx.moveTo(px + 40, py + 78);
+  ctx.lineTo(px + pw - 40, py + 78);
+  ctx.stroke();
+
+  ctx.fillStyle = '#ccc';
+  ctx.font = '18px "Courier New", monospace';
+  ctx.fillText('点击「开始游戏」', CANVAS_W / 2, py + 108);
+  ctx.fillStyle = '#888';
+  ctx.font = '13px "Courier New", monospace';
+  ctx.fillText('WASD 移动  ·  鼠标瞄准射击  ·  P 暂停', CANVAS_W / 2, py + 136);
+  ctx.fillStyle = '#666';
+  ctx.font = '12px "Courier New", monospace';
+  ctx.fillText('连续击毁连击加分  ·  存活 90 秒挑战 BOSS', CANVAS_W / 2, py + 162);
+  ctx.fillStyle = '#555';
+  ctx.fillText('查看「成就」解锁全部挑战', CANVAS_W / 2, py + 184);
+  ctx.textAlign = 'left';
+}
+
+/** 【手感】Canvas 暂停遮罩（与 HTML 层叠加） */
+function drawPauseOverlay() {
+  if (gameState !== STATE.PAUSED) return;
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+}
+
+// ---------- 游戏逻辑更新 ----------
+
+function resetGame() {
+  ship = createShip();
+  bullets = [];
+  meteors = [];
+  particles = [];
+  sparks = [];
+  pickupFlashes = [];
+  score = 0;
+  spawnTimer = 0;
+  spawnInterval = BASE_SPAWN_INTERVAL;
+  gameTime = 0;
+  fireCooldown = 0;
+  clearEquipmentState(); // 【新增】清空本局装备
+  clearBossState();      // 【新增】清空 BOSS 状态与爆炸粒子
+  // 【体验优化】重置手感状态
+  screenShake = 0;
+  damageFlash = 0;
+  combo = 0;
+  comboTimer = 0;
+  maxCombo = 0;
+  killCount = 0;
+  scorePopups = [];
+  achievementToasts = [];
+  resetRunStats();
+  isPaused = false;
+  pauseOverlay.classList.remove('show');
+  btnPause.textContent = '暂停';
+  newRecordBadge.style.display = 'none';
+  gameOverModal.classList.remove('show');
+}
+
+function startGame() {
+  initAudio();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  resetGame();
+  gameState = STATE.PLAYING;
+}
+
+function formatBossKillReport() {
+  if (runStats.boss1Killed && runStats.boss2Killed) return 'BOSS：已全部击败（×2）';
+  if (runStats.boss1Killed) return 'BOSS：已击败 ×1';
+  if (runStats.boss2Killed) return 'BOSS：已击败强化 BOSS';
+  return 'BOSS：未击杀';
+}
+
+function endGame() {
+  gameState = STATE.GAMEOVER;
+  isPaused = false;
+  pauseOverlay.classList.remove('show');
+  clearEquipmentState();
+  clearBossState();
+  const isNewRecord = score > highScore;
+  if (isNewRecord) {
+    highScore = score;
+    saveHighScore(highScore);
+  }
+  finalScoreEl.textContent = score;
+  finalTimeEl.textContent = Math.floor(gameTime / 60);
+  finalKillsEl.textContent = killCount;
+  finalComboEl.textContent = maxCombo;
+  modalHighScoreEl.textContent = highScore;
+  // 【拓展】本局战绩：击毁陨石数 + BOSS 击杀情况
+  if (finalBossReportEl) {
+    finalBossReportEl.textContent = '本局击毁 ' + killCount + ' 个陨石 · ' + formatBossKillReport();
+  }
+  newRecordBadge.style.display = isNewRecord ? 'block' : 'none';
+  onGameEndAchievements(isNewRecord);
+  gameOverModal.classList.add('show');
+  playGameOverSound();
+}
+
+/** 移除陨石；giveScore 为 true 时计分并触发分裂（被子弹击毁） */
+function destroyMeteor(index, giveScore) {
+  const m = meteors[index];
+  if (giveScore) {
+    const base = m.type === 'large' ? METEOR_LARGE_SCORE : METEOR_SMALL_SCORE;
+    registerKill(m.x, m.y, base, false);
+    playExplodeSound();
+    if (m.type === 'large') {
+      for (let i = 0; i < 2; i++) {
+        const offset = (i === 0 ? -1 : 1) * 8;
+        const sm = createMeteor(m.x + offset, m.y, 'small');
+        const angle = Math.atan2(sm.vy, sm.vx) + (i === 0 ? 0.5 : -0.5);
+        sm.vx = Math.cos(angle) * METEOR_SMALL_SPEED * 1.3;
+        sm.vy = Math.sin(angle) * METEOR_SMALL_SPEED * 1.3;
+        meteors.push(sm);
+      }
+    }
+    if (Math.random() < getDropChance()) {
+      spawnDrop(m.x, m.y);
+    }
+  }
+  createExplosion(m.x, m.y, m.type === 'large' ? '#795548' : '#8d6e63', m.type === 'large' ? 16 : 8);
+  trimParticles();
+  meteors.splice(index, 1);
+}
+
+function updatePlaying() {
+  gameTime++;
+  updateBgStars();
+  updateJuice();
+
+  checkBossSpawn();
+  if (bossAlertTimer > 0) bossAlertTimer--;
+  if (bossDefeatTimer > 0) bossDefeatTimer--;
+
+  spawnInterval = getEffectiveSpawnInterval();
+  updateMeteorSwarm(); // 【节奏】陨石潮（首 BOSS 后）
+
+  if (!boss) {
+    spawnTimer++;
+    if (spawnTimer >= spawnInterval) {
+      spawnTimer = 0;
+      spawnMeteor();
+      const extra = getExtraSpawnsOnTick();
+      for (let e = 0; e < extra; e++) spawnMeteor();
+    }
+  }
+
+  // 【新增】更新 BOSS 与弹幕
+  if (boss) {
+    updateBoss();
+    updateBossBullets();
+  }
+
+  // 飞船移动
+  let dx = 0, dy = 0;
+  if (keys['w'] || keys['W'] || keys['ArrowUp'])    dy -= 1;
+  if (keys['s'] || keys['S'] || keys['ArrowDown'])  dy += 1;
+  if (keys['a'] || keys['A'] || keys['ArrowLeft'])  dx -= 1;
+  if (keys['d'] || keys['D'] || keys['ArrowRight']) dx += 1;
+  ship.thrusting = (dx !== 0 || dy !== 0); // 【新增】尾焰动画
+  if (dx !== 0 || dy !== 0) {
+    const len = Math.sqrt(dx * dx + dy * dy);
+    // 【新增】加速推进装备提升移速
+    const speed = SHIP_SPEED * (hasEquipment('speed') ? SPEED_BOOST_MULT : 1);
+    ship.x += (dx / len) * speed;
+    ship.y += (dy / len) * speed;
+  }
+  // 限制在画布内
+  ship.x = Math.max(SHIP_SIZE, Math.min(CANVAS_W - SHIP_SIZE, ship.x));
+  ship.y = Math.max(SHIP_SIZE, Math.min(CANVAS_H - SHIP_SIZE, ship.y));
+
+  updateShipAiming(); // 【手感】平滑转向鼠标
+
+  // 射击
+  if (fireCooldown > 0) fireCooldown--;
+  if (keys[' '] || mouseDown) {
+    fireBullet();
+  }
+
+  // 【新增】更新装备倒计时
+  updateActiveEquipments();
+
+  // 【拓展】激光束装备：持续 7 秒内周期性发射贯穿全屏激光
+  for (let i = laserBeams.length - 1; i >= 0; i--) {
+    laserBeams[i].life--;
+    if (laserBeams[i].life <= 0) laserBeams.splice(i, 1);
+  }
+  if (hasEquipment('laser')) {
+    if (laserFireCooldown > 0) {
+      laserFireCooldown--;
+    } else {
+      fireLaserBeam();
+      laserFireCooldown = LASER_FIRE_INTERVAL;
+    }
+  } else {
+    laserFireCooldown = 0;
+  }
+
+  // 【新增】更新掉落物（缓慢下沉 + 拾取检测）
+  for (let i = drops.length - 1; i >= 0; i--) {
+    const d = drops[i];
+    d.y += DROP_FLOAT_SPEED;
+    d.pulse += 0.08;
+    d.life--;
+    // 【体验优化】靠近飞船时磁吸，提升拾取手感
+    const dx = ship.x - d.x;
+    const dy = ship.y - d.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < DROP_MAGNET_RANGE && dist > 1) {
+      d.x += (dx / dist) * DROP_MAGNET_FORCE;
+      d.y += (dy / dist) * DROP_MAGNET_FORCE;
+    }
+    if (d.life <= 0 || d.y > CANVAS_H + 20) {
+      drops.splice(i, 1);
+      continue;
+    }
+    if (circleCollision(ship, d, SHIP_SIZE * 0.6, DROP_SIZE)) {
+      activateEquipment(d.type);
+      drops.splice(i, 1);
+    }
+  }
+
+  // 更新子弹
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    const b = bullets[i];
+    b.x += b.vx;
+    b.y += b.vy;
+    b.life--;
+    if (b.life <= 0 || b.x < 0 || b.x > CANVAS_W || b.y < 0 || b.y > CANVAS_H) {
+      bullets.splice(i, 1);
+      continue;
+    }
+    // 子弹 vs 陨石
+    let bulletRemoved = false;
+    for (let j = meteors.length - 1; j >= 0; j--) {
+      if (circleCollision(b, meteors[j], BULLET_SIZE, meteors[j].radius)) {
+        meteors[j].hp--;
+        playHitSound();
+        createHitSparks(b.x, b.y, b.pierceLeft > 0 ? '#e040fb' : '#ffeb3b'); // 【画面】命中火花
+        if (b.pierceLeft > 0) {
+          b.pierceLeft--;
+        } else {
+          bullets.splice(i, 1);
+          bulletRemoved = true;
+        }
+        if (meteors[j].hp <= 0) {
+          destroyMeteor(j, true);
+        }
+        break;
+      }
+    }
+    // 【新增】子弹 vs BOSS
+    if (!bulletRemoved && boss && circleCollision(b, boss, BULLET_SIZE, BOSS_RADIUS)) {
+      boss.hp--;
+      playHitSound();
+      createHitSparks(b.x, b.y, '#ffeb3b'); // 【画面】命中 BOSS 火花
+      if (b.pierceLeft > 0) {
+        b.pierceLeft--;
+      } else {
+        bullets.splice(i, 1);
+      }
+      if (boss.hp <= 0) {
+        destroyBoss();
+      }
+    }
+  }
+
+  // 更新陨石
+  for (let i = meteors.length - 1; i >= 0; i--) {
+    const m = meteors[i];
+    m.x += m.vx;
+    m.y += m.vy;
+    m.rotation += m.rotSpeed;
+
+    // 陨石 vs 飞船
+    if (ship.invincible <= 0 && circleCollision(ship, m, SHIP_SIZE * 0.6, m.radius * 0.85)) {
+      // 【新增】护盾抵挡一次撞击
+      if (shieldActive) {
+        shieldActive = false;
+        activeEquipments = activeEquipments.filter(e => e.type !== 'shield');
+        ship.invincible = SHIP_INVINCIBLE_TIME;
+        createExplosion(ship.x, ship.y, '#00e676', 12);
+        playShieldBreakSound();
+        destroyMeteor(i, false);
+        continue;
+      }
+      ship.hp--;
+      ship.invincible = SHIP_INVINCIBLE_TIME;
+      combo = 0;
+      comboTimer = 0;
+      addDamageFlash();
+      createExplosion(ship.x, ship.y, '#ff5252', 10);
+      playHurtSound();
+      destroyMeteor(i, false);
+      if (ship.hp <= 0) {
+        endGame();
+        return;
+      }
+    }
+  }
+
+  // 【新增】BOSS 本体 vs 飞船碰撞
+  if (boss && boss.entered && ship.invincible <= 0 && circleCollision(ship, boss, SHIP_SIZE * 0.6, BOSS_RADIUS * 0.85)) {
+    if (shieldActive) {
+      shieldActive = false;
+      activeEquipments = activeEquipments.filter(e => e.type !== 'shield');
+      ship.invincible = SHIP_INVINCIBLE_TIME;
+      createExplosion(ship.x, ship.y, '#00e676', 12);
+      playShieldBreakSound();
+    } else {
+      ship.hp--;
+      ship.invincible = SHIP_INVINCIBLE_TIME;
+      combo = 0;
+      comboTimer = 0;
+      addDamageFlash();
+      createExplosion(ship.x, ship.y, '#ff5252', 10);
+      playHurtSound();
+      if (ship.hp <= 0) {
+        endGame();
+        return;
+      }
+    }
+  }
+
+  // 无敌帧倒计时
+  if (ship.invincible > 0) ship.invincible--;
+
+  // 更新粒子
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life--;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+
+  // 【画面】更新命中火花
+  for (let i = sparks.length - 1; i >= 0; i--) {
+    const s = sparks[i];
+    s.x += s.vx;
+    s.y += s.vy;
+    s.vx *= 0.88;
+    s.vy *= 0.88;
+    s.life--;
+    if (s.life <= 0) sparks.splice(i, 1);
+  }
+
+  // 【画面】更新拾取闪光
+  for (let i = pickupFlashes.length - 1; i >= 0; i--) {
+    pickupFlashes[i].life--;
+    if (pickupFlashes[i].life <= 0) pickupFlashes.splice(i, 1);
+  }
+
+  // 【新增】更新 BOSS 死亡慢消散爆炸粒子
+  for (let i = bossExplosionParticles.length - 1; i >= 0; i--) {
+    const p = bossExplosionParticles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vx *= 0.98;
+    p.vy *= 0.98;
+    p.life--;
+    if (p.life <= 0) bossExplosionParticles.splice(i, 1);
+  }
+
+  checkAchievements();
+}
+
+// ---------- 主渲染循环 ----------
+function render() {
+  drawBackground();
+
+  ctx.save();
+  // 【体验优化】屏幕震动
+  if (screenShake > 0) {
+    ctx.translate(
+      (Math.random() - 0.5) * screenShake * 2,
+      (Math.random() - 0.5) * screenShake * 2
+    );
+  }
+
+  if (gameState === STATE.PLAYING || gameState === STATE.PAUSED || gameState === STATE.GAMEOVER) {
+    meteors.forEach(drawMeteor);
+    if (boss) drawBoss(boss);
+    drops.forEach(drawDrop);
+    bossBullets.forEach(drawBossBullet);
+    drawLaserBeams();                    // 【拓展】激光束
+    bullets.forEach(drawBullet);
+    sparks.forEach(drawSpark);           // 【画面】
+    particles.forEach(drawParticle);
+    drawPickupFlashes();                 // 【画面】
+    bossExplosionParticles.forEach(drawBossExplosionParticle);
+    drawAimLine();
+    if (ship) drawShip(ship);
+    drawScorePopups();
+    if (gameState === STATE.PLAYING || gameState === STATE.PAUSED) {
+      drawHUD();
+      drawEquipmentPanel();
+      if (boss) drawBossHPBar();
+    }
+    if (bossAlertTimer > 0 || bossDefeatTimer > 0) {
+      drawBossBanners(); // 【手感】BOSS 登场/击败提示
+    }
+    if (swarmWarningActive) {
+      drawSwarmWarning(); // 【节奏】陨石潮预警
+    }
+  }
+
+  ctx.restore();
+  drawTensionVignette(); // 【画面】后期边缘红晕（不遮挡中心）
+  drawDamageFlash();
+  drawAchievementToasts();
+  drawPauseOverlay(); // 【手感】暂停遮罩
+
+  if (gameState === STATE.MENU) {
+    updateBgStars();
+    const demoShip = { x: CANVAS_W / 2, y: CANVAS_H / 2, angle: -Math.PI / 2, invincible: 0, thrusting: false };
+    drawShip(demoShip);
+    drawMenuOverlay();
+  }
+}
+
+function gameLoop() {
+  if (gameState === STATE.PLAYING) {
+    updatePlaying();
+  }
+  render();
+  requestAnimationFrame(gameLoop);
+}
+
+// ---------- 事件绑定 ----------
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && achievementModal.classList.contains('show')) {
+    closeAchievementModal();
+    return;
+  }
+  keys[e.key] = true;
+  if ((e.key === 'p' || e.key === 'P' || e.key === 'Escape') &&
+      (gameState === STATE.PLAYING || gameState === STATE.PAUSED)) {
+    e.preventDefault();
+    togglePause();
+    return;
+  }
+  if (e.key === ' ' && gameState === STATE.PLAYING) {
+    e.preventDefault();
+    fireBullet();
+  }
+});
+
+document.addEventListener('keyup', (e) => {
+  keys[e.key] = false;
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  mouseX = (e.clientX - rect.left) * (CANVAS_W / rect.width);
+  mouseY = (e.clientY - rect.top) * (CANVAS_H / rect.height);
+});
+
+canvas.addEventListener('mousedown', (e) => {
+  mouseDown = true;
+  initAudio();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  const rect = canvas.getBoundingClientRect();
+  mouseX = (e.clientX - rect.left) * (CANVAS_W / rect.width);
+  mouseY = (e.clientY - rect.top) * (CANVAS_H / rect.height);
+  if (gameState === STATE.PLAYING) fireBullet();
+});
+
+canvas.addEventListener('mouseup', () => { mouseDown = false; });
+canvas.addEventListener('mouseleave', () => { mouseDown = false; });
+
+btnStart.addEventListener('click', startGame);
+btnRetry.addEventListener('click', startGame);
+btnPause.addEventListener('click', togglePause);
+btnAchievements.addEventListener('click', openAchievementModal);
+btnAchClose.addEventListener('click', closeAchievementModal);
+
+btnSound.addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  saveSoundEnabled(soundEnabled);
+  updateSoundButton();
+  if (soundEnabled) {
+    initAudio();
+    playTone(660, 0.08, 'square', 0.05);
+  }
+});
+
+// ---------- 初始化 ----------
+loadAchievements();
+loadLifetimeStats();
+initBgStars();
+updateSoundButton();
+updateAchievementBadge();
+gameLoop();
+
+</script>
+
+<!--
+============================================================
+  使用说明
+============================================================
+1. 双击本 HTML 文件即可在浏览器中打开游玩，无需安装或联网。
+2. 操作方式：
+   - W / A / S / D：控制飞船上下左右移动
+   - 空格键 或 鼠标左键：朝鼠标方向发射子弹
+   - P 键 或 Esc：暂停 / 继续
+3. 游戏规则：
+   - 击毁大陨石得 20 分，小陨石得 10 分（连击可获最高 2 倍加分）
+   - 2 秒内连续击毁维持连击，连击越高得分倍率越高
+   - 大陨石被击碎后会分裂成 2 块小陨石
+   - 飞船共 3 点生命，被陨石撞击扣 1 点，归零则游戏结束
+   - 存活越久，陨石刷新越快，难度分三阶段平滑提升
+   - 击败第一 BOSS 后进入阶段二（刷新加快、陨石更快、掉落略增）
+   - 再存活一段时间后进入阶段三（同屏更多陨石、大陨石更频繁）
+   - 击败第一 BOSS 后周期性出现「陨石潮」，来袭前 2 秒屏幕预警
+   - 后期背景星空渐亮，画面边缘出现淡红危机光晕
+   - 击毁陨石有概率掉落装备，碰触即可拾取（单局有效）
+   - 装备：连发枪(15s)、穿透弹(12s)、护盾(20s)、加速推进(10s)、散弹枪(8s)、
+           激光束(7s，贯穿全屏)、回血装置(即时 +1 生命)
+   - 右下角面板显示当前生效装备及剩余时间
+   - 存活满 90 秒触发第一只 BOSS，击败后再存活 120 秒出现强化 BOSS
+   - 击败 BOSS 分别获得 500 / 1000 分高额奖励
+   - 分数达到 200/500/1000/2000 档时，陨石刷新会额外小幅加快
+   - BOSS 战期间暂停普通陨石刷新，击杀后恢复正常
+   - 游戏结束界面显示本局击毁陨石数与 BOSS 击杀战绩
+4. 按钮功能：
+   - 「开始游戏」：开始新一局
+   - 「重新挑战」：立即重新开始
+   - 「暂停/继续」：暂停游戏
+   - 「成就」：查看已解锁成就（共 18 项，本地保存）
+   - 「音效：开/关」：切换音效，设置会自动保存
+5. 本地存储：
+   - 历史最高分、音效开关、成就进度保存在浏览器 LocalStorage
+   - 关闭页面后再次打开，数据仍然保留
+   - 所有数据仅保存在本机，不会上传至任何服务器
+============================================================
+-->
+
+</body>
+</html>
