@@ -20,17 +20,69 @@
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      overflow: hidden;
+      overflow: auto;
       user-select: none;
+      padding: 16px 12px 28px;
     }
 
     h1 {
-      font-size: 28px;
+      font-size: 26px;
       letter-spacing: 4px;
       color: #7ec8ff;
       text-shadow: 0 0 8px rgba(126, 200, 255, 0.5);
-      margin-bottom: 12px;
+      margin-bottom: 0;
     }
+
+    .app-header {
+      width: min(800px, 96vw);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .user-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #888;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .user-bar .name { color: #7ec8ff; }
+    .user-bar .guest { color: #666; }
+
+    .user-bar button {
+      padding: 5px 12px;
+      font-size: 12px;
+    }
+
+    .server-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #777;
+      letter-spacing: 1px;
+    }
+
+    .server-dot {
+      width: 8px;
+      height: 8px;
+      background: #555;
+      display: inline-block;
+    }
+
+    .server-dot.ok {
+      background: #4caf50;
+      box-shadow: 0 0 6px #4caf50;
+    }
+
+    .server-dot.off { background: #ff5252; }
 
     #gameWrapper {
       position: relative;
@@ -345,11 +397,254 @@
       border-radius: 0;
       line-height: 1.4;
     }
+
+    /* ---------- 前后端：账号 / 排行榜 / 战绩 ---------- */
+    .app-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.82);
+      align-items: center;
+      justify-content: center;
+      z-index: 120;
+    }
+
+    .app-modal.show { display: flex; }
+
+    .app-panel {
+      background: #12121f;
+      border: 3px solid #7ec8ff;
+      width: min(520px, 92vw);
+      max-height: 82vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 40px rgba(126, 200, 255, 0.2);
+    }
+
+    .app-panel.gold { border-color: #ffd700; }
+
+    .app-panel .ach-header h2 { color: #7ec8ff; }
+    .app-panel.gold .ach-header h2 { color: #ffd700; }
+
+    .auth-tabs {
+      display: flex;
+      gap: 8px;
+      padding: 0 16px;
+      margin-top: 12px;
+    }
+
+    .auth-tabs button {
+      flex: 1;
+    }
+
+    .auth-form {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .auth-form label {
+      font-size: 12px;
+      color: #888;
+      letter-spacing: 1px;
+    }
+
+    .auth-form input {
+      font-family: inherit;
+      font-size: 14px;
+      padding: 8px 10px;
+      border: 2px solid #444;
+      background: #0d0d18;
+      color: #e0e0e0;
+      outline: none;
+    }
+
+    .auth-form input:focus { border-color: #7ec8ff; }
+
+    .auth-error {
+      display: none;
+      color: #ff6b6b;
+      font-size: 12px;
+      min-height: 16px;
+    }
+
+    .board-stats {
+      padding: 0 16px 8px;
+      font-size: 12px;
+      color: #777;
+    }
+
+    .board-list, .hist-list {
+      overflow-y: auto;
+      padding: 8px 16px 16px;
+      flex: 1;
+    }
+
+    .board-row, .hist-row {
+      display: grid;
+      grid-template-columns: 42px 1fr 70px;
+      gap: 6px 10px;
+      padding: 8px 6px;
+      border-bottom: 1px solid #222;
+      font-size: 13px;
+      align-items: center;
+    }
+
+    .board-row {
+      grid-template-columns: 42px 1fr 72px;
+    }
+
+    .board-row .r-meta {
+      grid-column: 2 / 4;
+      font-size: 11px;
+      color: #666;
+    }
+
+    .board-row.mine {
+      background: rgba(126, 200, 255, 0.08);
+      border: 1px solid #334;
+    }
+
+    .r-rank { color: #ffd700; }
+    .r-name { color: #ddd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .r-score { color: #ffd700; text-align: right; }
+    .r-time { font-size: 11px; color: #555; text-align: right; }
+    .hist-row { grid-template-columns: 70px 1fr auto; }
+
+    .board-empty {
+      color: #666;
+      text-align: center;
+      padding: 28px 10px;
+      font-size: 13px;
+    }
+
+    .profile-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 12px 16px;
+    }
+
+    #submitStatus.ok { color: #69f0ae; }
+    #submitStatus.err { color: #ff6b6b; }
+    #submitStatus.warn { color: #ffd54f; }
+
+    .form-tip { font-size: 12px; color: #777; min-height: 16px; }
+    .form-tip.ok { color: #69f0ae; }
+    .form-tip.err { color: #ff6b6b; }
+
+    .nick-row {
+      display: flex;
+      gap: 8px;
+      padding: 0 16px 8px;
+    }
+
+    .nick-row input {
+      flex: 1;
+      font-family: inherit;
+      font-size: 13px;
+      padding: 6px 8px;
+      border: 2px solid #444;
+      background: #0d0d18;
+      color: #e0e0e0;
+    }
+
+    .announce-bar {
+      width: min(800px, 96vw);
+      margin-bottom: 10px;
+      padding: 8px 12px;
+      border: 1px solid #333;
+      background: rgba(126, 200, 255, 0.06);
+      font-size: 12px;
+      color: #9ab;
+      line-height: 1.5;
+    }
+
+    .announce-bar strong { color: #7ec8ff; }
+
+    .diff-bar {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .diff-bar span { font-size: 12px; color: #666; }
+
+    .help-tabs, .board-tabs {
+      display: flex;
+      gap: 8px;
+      padding: 10px 16px 0;
+      flex-wrap: wrap;
+    }
+
+    .help-section { display: none; padding: 12px 16px 8px; overflow-y: auto; }
+    .help-section.show { display: block; }
+    .help-section h3 { color: #7ec8ff; font-size: 14px; margin: 10px 0 6px; }
+    .help-section p, .help-section li { font-size: 13px; color: #aaa; line-height: 1.55; }
+    .help-section ul { padding-left: 18px; margin-bottom: 8px; }
+    .eq-row { display: flex; gap: 8px; margin: 6px 0; font-size: 13px; color: #bbb; }
+    .eq-dot { width: 10px; height: 10px; margin-top: 4px; flex-shrink: 0; }
+
+    .mission-item {
+      border: 1px solid #333;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+    }
+    .mission-item.done { border-color: #4caf50; background: rgba(76, 175, 80, 0.08); }
+    .mission-top { display: flex; justify-content: space-between; font-size: 13px; color: #ddd; }
+    .mission-desc { font-size: 12px; color: #777; margin: 4px 0 8px; }
+    .mission-bar { height: 6px; background: #222; }
+    .mission-bar > i { display: block; height: 100%; background: #7ec8ff; }
+    .mission-item.done .mission-bar > i { background: #4caf50; }
+
+    .settings-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #222;
+      font-size: 13px;
+      color: #ccc;
+    }
+
+    .pw-box { padding: 4px 16px 8px; display: flex; flex-direction: column; gap: 8px; }
+    .pw-box input {
+      font-family: inherit;
+      font-size: 13px;
+      padding: 6px 8px;
+      border: 2px solid #444;
+      background: #0d0d18;
+      color: #e0e0e0;
+    }
+
+    .title-chip {
+      display: inline-block;
+      font-size: 12px;
+      padding: 2px 8px;
+      border: 1px solid #555;
+      color: #7ec8ff;
+      margin-left: 6px;
+    }
   </style>
 </head>
 <body>
 
-  <h1>像素陨石防线</h1>
+  <div class="app-header">
+    <h1>像素陨石防线</h1>
+    <div class="user-bar">
+      <span class="server-pill"><span id="serverDot" class="server-dot"></span><span id="serverLabel">检测中</span></span>
+      <span id="userName" class="guest">游客</span>
+      <button type="button" id="btnProfile" style="display:none;">战绩</button>
+      <button type="button" id="btnLogin">登录</button>
+      <button type="button" id="btnLogout" style="display:none;">退出</button>
+    </div>
+  </div>
+
+  <div class="announce-bar" id="announceBar">加载防线简报…</div>
 
   <div id="gameWrapper">
     <canvas id="gameCanvas" width="800" height="600"></canvas>
@@ -384,7 +679,10 @@
           </div>
         </div>
         <p class="new-record" id="newRecordBadge" style="display:none;">★ 新纪录！★</p>
+        <p class="modal-footer" id="finalDiffLine">难度：标准</p>
+        <p class="modal-footer" id="finalDailyLine">每日任务：登录后同步进度</p>
         <p class="modal-footer" id="finalBossReport">本局击毁 0 个陨石 · BOSS：未击杀</p>
+        <p class="modal-footer" id="submitStatus">登录后可将成绩上传至全球排行榜</p>
         <p class="modal-footer">点击「重新挑战」再来一局</p>
       </div>
     </div>
@@ -395,9 +693,19 @@
     <button id="btnRetry">重新挑战</button>
     <button id="btnPause">暂停</button>
     <button id="btnAchievements" class="has-badge">成就<span class="badge" id="achBadge">0/0</span></button>
+    <button id="btnLeaderboard">排行榜</button>
+    <button id="btnMissions">每日任务</button>
+    <button id="btnHelp">帮助图鉴</button>
+    <button id="btnSettings">设置</button>
     <button id="btnSound">音效：开</button>
   </div>
-  <p id="hint">WASD 移动 · 空格/鼠标射击 · P 暂停</p>
+  <div class="diff-bar">
+    <span>难度</span>
+    <button type="button" id="diffEasy" data-diff="easy">简单</button>
+    <button type="button" id="diffNormal" data-diff="normal" class="active">标准</button>
+    <button type="button" id="diffHard" data-diff="hard">困难</button>
+  </div>
+  <p id="hint">WASD 移动 · 空格/鼠标射击 · P 暂停 · 登录后同步成就、每日任务与排行榜</p>
 
   <!-- 【成就系统】成就列表弹窗 -->
   <div id="achievementModal">
@@ -411,11 +719,192 @@
     </div>
   </div>
 
+  <!-- 登录 / 注册 -->
+  <div id="authModal" class="app-modal">
+    <div class="app-panel">
+      <div class="ach-header">
+        <h2 id="authTitle">指挥官登录</h2>
+        <span class="ach-progress">账号用于排行榜与云存档</span>
+      </div>
+      <div class="auth-tabs">
+        <button type="button" id="authTabLogin" class="active">登录</button>
+        <button type="button" id="authTabRegister">注册</button>
+      </div>
+      <form class="auth-form" id="authForm" data-mode="login">
+        <label>用户名</label>
+        <input id="authUsername" maxlength="16" autocomplete="username" placeholder="2-16 位中文/字母/数字">
+        <label>密码</label>
+        <input id="authPassword" type="password" maxlength="32" autocomplete="current-password" placeholder="至少 4 位">
+        <div id="authNicknameRow" style="display:none;">
+          <label>昵称（选填）</label>
+          <input id="authNickname" maxlength="16" placeholder="排行榜显示名">
+        </div>
+        <div class="auth-error" id="authError"></div>
+        <button type="submit" id="authSubmit">登录</button>
+      </form>
+      <button class="ach-close" id="btnAuthClose">关闭</button>
+    </div>
+  </div>
+
+  <!-- 全球排行榜 -->
+  <div id="boardModal" class="app-modal">
+    <div class="app-panel gold">
+      <div class="ach-header">
+        <h2>全球排行榜</h2>
+        <span class="ach-progress" id="boardCaption">每人保留最高分</span>
+      </div>
+      <div class="board-tabs">
+        <button type="button" id="boardTabAll" class="active">总榜</button>
+        <button type="button" id="boardTabWeek">本周</button>
+        <button type="button" id="boardDiffAll" class="active">全部难度</button>
+        <button type="button" id="boardDiffEasy">简单</button>
+        <button type="button" id="boardDiffNormal">标准</button>
+        <button type="button" id="boardDiffHard">困难</button>
+      </div>
+      <div class="board-stats" id="boardStats"></div>
+      <div class="board-list" id="boardList"></div>
+      <button class="ach-close" id="btnBoardClose">关闭</button>
+    </div>
+  </div>
+
+  <!-- 个人战绩 -->
+  <div id="profileModal" class="app-modal">
+    <div class="app-panel">
+      <div class="ach-header">
+        <h2>个人战绩</h2>
+        <span class="ach-progress" id="profileName">—</span>
+      </div>
+      <p style="padding: 8px 16px 0; font-size: 12px; color: #888;">称号 <span class="title-chip" id="profileTitle">新兵</span> · 总榜 <span id="profileRank">未上榜</span></p>
+      <div class="profile-grid">
+        <div class="modal-stat">
+          <span class="modal-stat-label">云端最高</span>
+          <span class="modal-stat-value gold" id="profileBest">0</span>
+        </div>
+        <div class="modal-stat">
+          <span class="modal-stat-label">累计对局</span>
+          <span class="modal-stat-value" id="profileGames">0</span>
+        </div>
+        <div class="modal-stat">
+          <span class="modal-stat-label">累计击毁</span>
+          <span class="modal-stat-value" id="profileKills">0</span>
+        </div>
+        <div class="modal-stat">
+          <span class="modal-stat-label">成就 / BOSS</span>
+          <span class="modal-stat-value"><span id="profileAch">0</span> · <span id="profileBoss">0</span></span>
+        </div>
+      </div>
+      <div class="nick-row">
+        <input id="nickInput" maxlength="16" placeholder="修改昵称">
+        <button type="button" id="btnSaveNick">保存</button>
+      </div>
+      <p class="form-tip" id="nickTip" style="padding: 0 16px 8px;"></p>
+      <div class="pw-box">
+        <input id="oldPassword" type="password" placeholder="原密码" maxlength="32">
+        <input id="newPassword" type="password" placeholder="新密码（4-32 位）" maxlength="32">
+        <button type="button" id="btnSavePass">修改密码</button>
+        <p class="form-tip" id="passTip"></p>
+      </div>
+      <div class="hist-list" id="profileHistory"></div>
+      <button class="ach-close" id="btnProfileClose">关闭</button>
+    </div>
+  </div>
+
+  <div id="helpModal" class="app-modal">
+    <div class="app-panel">
+      <div class="ach-header">
+        <h2>帮助图鉴</h2>
+        <span class="ach-progress">作战手册</span>
+      </div>
+      <div class="help-tabs">
+        <button type="button" class="help-tab active" data-tab="ops">操作</button>
+        <button type="button" class="help-tab" data-tab="eq">装备</button>
+        <button type="button" class="help-tab" data-tab="boss">BOSS</button>
+        <button type="button" class="help-tab" data-tab="mode">难度 / 任务</button>
+      </div>
+      <div class="help-section show" id="help-ops">
+        <h3>基础操作</h3>
+        <ul>
+          <li>W A S D 或方向键：移动飞船</li>
+          <li>鼠标瞄准，空格 / 左键射击</li>
+          <li>P 或 Esc：暂停</li>
+        </ul>
+        <h3>计分规则</h3>
+        <ul>
+          <li>小陨石 10 分，大陨石 20 分，会分裂成两块小陨石</li>
+          <li>2 秒内连续击毁维持连击，最高 4 倍得分</li>
+          <li>困难模式得分 ×1.45，简单模式 ×0.75</li>
+        </ul>
+      </div>
+      <div class="help-section" id="help-eq">
+        <h3>七种装备</h3>
+        <div class="eq-row"><span class="eq-dot" style="background:#ff9800"></span>连发枪 · 15 秒，三发散射</div>
+        <div class="eq-row"><span class="eq-dot" style="background:#e040fb"></span>穿透弹 · 12 秒，可贯穿多个目标</div>
+        <div class="eq-row"><span class="eq-dot" style="background:#00e676"></span>护盾 · 20 秒，抵挡一次撞击</div>
+        <div class="eq-row"><span class="eq-dot" style="background:#40c4ff"></span>加速推进 · 10 秒，移速大幅提升</div>
+        <div class="eq-row"><span class="eq-dot" style="background:#ff5252"></span>散弹枪 · 8 秒，扇形五发散弹</div>
+        <div class="eq-row"><span class="eq-dot" style="background:#00e5ff"></span>激光束 · 7 秒，贯穿全屏</div>
+        <div class="eq-row"><span class="eq-dot" style="background:#69f0ae"></span>回血装置 · 立即恢复 1 点生命</div>
+        <p>击毁陨石有概率掉落，靠近会磁吸。右下角显示剩余时间。</p>
+      </div>
+      <div class="help-section" id="help-boss">
+        <h3>双 BOSS 战</h3>
+        <ul>
+          <li>存活 90 秒：第一 BOSS 登场，击败奖励 500 分</li>
+          <li>再存活 120 秒：强化 BOSS，弹幕更快，奖励 1200 分</li>
+          <li>BOSS 战期间暂停普通陨石刷新</li>
+          <li>击败第一 BOSS 后会出现陨石潮，屏幕会提前预警</li>
+        </ul>
+      </div>
+      <div class="help-section" id="help-mode">
+        <h3>三种难度</h3>
+        <ul>
+          <li>简单：陨石更慢更稀，4 点生命，得分 0.75 倍</li>
+          <li>标准：原版节奏</li>
+          <li>困难：更快更密，得分 1.45 倍，可冲击高排行</li>
+        </ul>
+        <h3>每日任务</h3>
+        <p>每天北京时间 0 点刷新 3 项任务。游客进度保存在本机，登录后与云端合并。三项全部完成可解锁成就「日课达成」。</p>
+      </div>
+      <button class="ach-close" id="btnHelpClose">关闭</button>
+    </div>
+  </div>
+
+  <div id="missionModal" class="app-modal">
+    <div class="app-panel gold">
+      <div class="ach-header">
+        <h2>每日任务</h2>
+        <span class="ach-progress" id="missionDate">今日</span>
+      </div>
+      <div class="ach-list" id="missionList"></div>
+      <button class="ach-close" id="btnMissionClose">关闭</button>
+    </div>
+  </div>
+
+  <div id="settingsModal" class="app-modal">
+    <div class="app-panel">
+      <div class="ach-header">
+        <h2>设置</h2>
+        <span class="ach-progress">音效与音乐</span>
+      </div>
+      <div class="auth-form">
+        <div class="settings-row">
+          <span>音效</span>
+          <button type="button" id="btnSetSound">开</button>
+        </div>
+        <div class="settings-row">
+          <span>背景音乐</span>
+          <button type="button" id="btnSetBgm">关</button>
+        </div>
+        <p class="form-tip">音乐为程序生成的低频氛围音，无需外部文件。</p>
+      </div>
+      <button class="ach-close" id="btnSettingsClose">关闭</button>
+    </div>
+  </div>
+
 <script>
 /* ============================================================
- *  像素陨石防线 - 纯本地单机版
- *  完整前后端版请运行：npm install && npm start
- *  然后打开 http://localhost:3000 （含账号、排行榜、云存档）
+ *  像素陨石防线 - 网页小游戏（支持游客本地游玩 / 登录云同步）
+ *  未登录时数据保存在 LocalStorage；登录后成绩上传至服务器排行榜
  * ============================================================ */
 
 // ========== 【可手动修改】动态难度三阶段（平滑加压） ==========
@@ -493,8 +982,37 @@ const CANVAS_W = 800;
 const CANVAS_H = 600;
 const STORAGE_KEY_HIGH_SCORE = 'meteorDefense_highScore';
 const STORAGE_KEY_SOUND = 'meteorDefense_soundEnabled';
-const STORAGE_KEY_ACHIEVEMENTS = 'meteorDefense_achievements';   // 【成就】已解锁 ID 列表
-const STORAGE_KEY_LIFETIME = 'meteorDefense_lifetimeStats';      // 【成就】累计统计
+const STORAGE_KEY_ACHIEVEMENTS = 'meteorDefense_achievements';
+const STORAGE_KEY_LIFETIME = 'meteorDefense_lifetimeStats';
+const STORAGE_KEY_DIFFICULTY = 'meteorDefense_difficulty';
+const STORAGE_KEY_BGM = 'meteorDefense_bgmEnabled';
+const STORAGE_KEY_DAILY = 'meteorDefense_daily';
+
+const DIFFICULTY_PRESETS = {
+  easy:   { id: 'easy',   name: '简单', spawnMult: 1.28, speedMult: 0.82, scoreMult: 0.75, hpBonus: 1 },
+  normal: { id: 'normal', name: '标准', spawnMult: 1,    speedMult: 1,    scoreMult: 1,    hpBonus: 0 },
+  hard:   { id: 'hard',   name: '困难', spawnMult: 0.72, speedMult: 1.22, scoreMult: 1.45, hpBonus: 0 }
+};
+
+function loadDifficulty() {
+  const id = localStorage.getItem(STORAGE_KEY_DIFFICULTY) || 'normal';
+  return DIFFICULTY_PRESETS[id] ? id : 'normal';
+}
+
+let currentDifficulty = loadDifficulty();
+function getDiff() { return DIFFICULTY_PRESETS[currentDifficulty]; }
+function getShipMaxHp() { return SHIP_MAX_HP + getDiff().hpBonus; }
+
+function setDifficulty(id) {
+  if (!DIFFICULTY_PRESETS[id]) return;
+  if (gameState === STATE.PLAYING) return;
+  currentDifficulty = id;
+  localStorage.setItem(STORAGE_KEY_DIFFICULTY, id);
+  ['easy', 'normal', 'hard'].forEach(function (d) {
+    const btn = document.getElementById('diff' + d.charAt(0).toUpperCase() + d.slice(1));
+    if (btn) btn.classList.toggle('active', d === id);
+  });
+}
 
 // 飞船参数
 const SHIP_SIZE = 20;
@@ -646,10 +1164,11 @@ function unlockAchievement(id) {
   });
   playAchievementSound();
   updateAchievementBadge();
+  if (window.GameCloud) GameCloud.syncAchievements();
 }
 
 function resetRunStats() {
-  runStats = { damageTaken: 0, equipTypes: {}, bossKilled: false, boss1Killed: false, boss2Killed: false };
+  runStats = { damageTaken: 0, equipTypes: {}, bossKilled: false, boss1Killed: false, boss2Killed: false, pickups: 0 };
   lastSurviveCheckSec = 0;
 }
 
@@ -661,6 +1180,7 @@ function checkAchievements() {
   if (score >= 100) unlockAchievement('score_100');
   if (score >= 500) unlockAchievement('score_500');
   if (score >= 1000) unlockAchievement('score_1000');
+  if (score >= 2000) unlockAchievement('score_2000');
   if (maxCombo >= 5) unlockAchievement('combo_5');
   if (maxCombo >= 10) unlockAchievement('combo_10');
   if (killCount >= 20) unlockAchievement('kills_20');
@@ -672,10 +1192,13 @@ function checkAchievements() {
     if (sec >= 30) unlockAchievement('survive_30');
     if (sec >= 60) unlockAchievement('survive_60');
     if (sec >= BOSS_SPAWN_TIME_SEC) unlockAchievement('survive_90');
+    if (sec >= 180) unlockAchievement('survive_180');
   }
 
   if (runStats.bossKilled) unlockAchievement('boss_slayer');
-  if (runStats.bossKilled && runStats.hpAtBossKill === SHIP_MAX_HP) unlockAchievement('iron_wall');
+  if (runStats.boss2Killed) unlockAchievement('boss2_slayer');
+  if (runStats.bossKilled && runStats.hpAtBossKill === getShipMaxHp()) unlockAchievement('iron_wall');
+  if (currentDifficulty === 'hard' && score >= 400) unlockAchievement('hard_clear');
 
   const equipCount = Object.keys(runStats.equipTypes).length;
   if (equipCount >= 7) unlockAchievement('collector');
@@ -794,6 +1317,53 @@ function playAchievementSound() { playTone(523, 0.1, 'square', 0.06); playTone(6
 function updateSoundButton() {
   btnSound.textContent = soundEnabled ? '音效：开' : '音效：关';
   btnSound.classList.toggle('active', soundEnabled);
+  const setBtn = document.getElementById('btnSetSound');
+  if (setBtn) {
+    setBtn.textContent = soundEnabled ? '开' : '关';
+    setBtn.classList.toggle('active', soundEnabled);
+  }
+}
+
+function loadBgmEnabled() {
+  return localStorage.getItem(STORAGE_KEY_BGM) === 'true';
+}
+
+let bgmEnabled = loadBgmEnabled();
+let bgmOsc = null;
+
+function stopBgm() {
+  if (bgmOsc) {
+    try { bgmOsc.stop(); } catch (e) {}
+    bgmOsc = null;
+  }
+}
+
+function startBgm() {
+  if (!bgmEnabled) return;
+  initAudio();
+  if (!audioCtx || bgmOsc) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'triangle';
+  osc.frequency.value = 92;
+  gain.gain.value = 0.028;
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  bgmOsc = osc;
+}
+
+function setBgmEnabled(on) {
+  bgmEnabled = !!on;
+  localStorage.setItem(STORAGE_KEY_BGM, String(bgmEnabled));
+  if (bgmEnabled) startBgm();
+  else stopBgm();
+  const btn = document.getElementById('btnSetBgm');
+  if (btn) {
+    btn.textContent = bgmEnabled ? '开' : '关';
+    btn.classList.toggle('active', bgmEnabled);
+  }
 }
 
 // ---------- 游戏状态 ----------
@@ -831,7 +1401,12 @@ const ACHIEVEMENTS = [
   { id: 'collector',    name: '装备大师', desc: '单局集齐全部 7 种装备',    icon: '🎁' },
   { id: 'new_record',   name: '突破极限', desc: '打破历史最高分',           icon: '🏅' },
   { id: 'veteran',      name: '老兵归来', desc: '累计完成 10 局游戏',       icon: '🎖' },
-  { id: 'annihilator',  name: '毁灭者',   desc: '累计击毁 500 个陨石',      icon: '☠' }
+  { id: 'annihilator',  name: '毁灭者',   desc: '累计击毁 500 个陨石',      icon: '☠' },
+  { id: 'score_2000',   name: '传说防线', desc: '单局得分达到 2000',        icon: '🌟' },
+  { id: 'survive_180',  name: '深空驻守', desc: '单局存活 180 秒',          icon: '🛰' },
+  { id: 'boss2_slayer', name: '双煞猎手', desc: '击败强化 BOSS',            icon: '💀' },
+  { id: 'hard_clear',   name: '极限飞行员', desc: '困难模式单局达到 400 分', icon: '🌪' },
+  { id: 'daily_star',   name: '日课达成', desc: '完成当天全部每日任务',     icon: '📅' }
 ];
 
 let unlockedAchievements = {};   // { id: unlockTime }
@@ -932,7 +1507,7 @@ function createShip() {
   return {
     x: CANVAS_W / 2,
     y: CANVAS_H / 2,
-    hp: SHIP_MAX_HP,
+    hp: getShipMaxHp(),
     invincible: 0,
     angle: -Math.PI / 2, // 默认朝上
     thrusting: false     // 【新增】是否正在推进（尾焰动画用）
@@ -1092,7 +1667,8 @@ function getDifficultyPhase() {
 }
 
 function getMeteorSpeedMult() {
-  return getDifficultyPhase() >= 2 ? PHASE2_METEOR_SPEED_MULT : 1;
+  const phaseMult = getDifficultyPhase() >= 2 ? PHASE2_METEOR_SPEED_MULT : 1;
+  return phaseMult * getDiff().speedMult;
 }
 
 function getLargeMeteorRatio() {
@@ -1109,7 +1685,7 @@ function getEffectiveSpawnInterval() {
   const phase = getDifficultyPhase();
   if (phase >= 2) interval -= PHASE2_SPAWN_REDUCE;
   if (phase >= 3) interval -= PHASE3_SPAWN_REDUCE;
-  return Math.max(MIN_SPAWN_INTERVAL, interval);
+  return Math.max(MIN_SPAWN_INTERVAL, interval * getDiff().spawnMult);
 }
 
 /** 单次刷新额外多刷几颗（阶段三密度更高） */
@@ -1453,6 +2029,7 @@ function hasEquipment(typeId) {
 function activateEquipment(typeId) {
   const def = EQUIPMENT_TYPES[typeId];
   if (!def) return;
+  runStats.pickups = (runStats.pickups || 0) + 1;
 
   // 【拓展】回血装置：即时恢复 1 点生命，不进入持续装备列表
   if (def.instant) {
@@ -1460,7 +2037,7 @@ function activateEquipment(typeId) {
     lifetimeStats.totalPickups = (lifetimeStats.totalPickups || 0) + 1;
     saveLifetimeStats();
     unlockAchievement('first_pickup');
-    if (ship.hp < SHIP_MAX_HP) {
+    if (ship.hp < getShipMaxHp()) {
       ship.hp++;
       scorePopups.push({
         x: ship.x, y: ship.y - 24,
@@ -1697,7 +2274,7 @@ function registerKill(x, y, baseScore, isBoss) {
   killCount++;
 
   const mult = getComboMultiplier();
-  const earned = Math.floor(baseScore * mult);
+  const earned = Math.floor(baseScore * mult * getDiff().scoreMult);
   score += earned;
 
   const popColor = isBoss ? '#ffd700' : (mult > 1 ? '#ff9800' : '#ffeb3b');
@@ -2240,7 +2817,8 @@ function drawHUD() {
 
   ctx.fillStyle = '#aaa';
   ctx.fillText('生命:', 14, 70);
-  for (let i = 0; i < SHIP_MAX_HP; i++) {
+  const maxHp = getShipMaxHp();
+  for (let i = 0; i < maxHp; i++) {
     ctx.fillStyle = i < ship.hp ? '#ff5252' : '#333';
     ctx.fillRect(70 + i * 22, 56, 16, 16);
   }
@@ -2248,6 +2826,13 @@ function drawHUD() {
   const seconds = Math.floor(gameTime / 60);
   ctx.fillStyle = '#888';
   ctx.fillText('时间: ' + seconds + 's', 14, 94);
+
+  ctx.textAlign = 'right';
+  ctx.fillStyle = currentDifficulty === 'hard' ? '#ff5252' : (currentDifficulty === 'easy' ? '#69f0ae' : '#7ec8ff');
+  ctx.font = '13px "Courier New", monospace';
+  ctx.fillText(getDiff().name, CANVAS_W - 14, 26);
+  ctx.textAlign = 'left';
+  ctx.font = '16px "Courier New", monospace';
 
   // 连击显示
   if (combo >= 2) {
@@ -2323,7 +2908,7 @@ function drawMenuOverlay() {
   ctx.fillStyle = 'rgba(0, 0, 0, 0.58)';
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-  const pw = 440, ph = 210;
+  const pw = 460, ph = 248;
   const px = (CANVAS_W - pw) / 2;
   const py = (CANVAS_H - ph) / 2 - 16;
 
@@ -2349,15 +2934,16 @@ function drawMenuOverlay() {
 
   ctx.fillStyle = '#ccc';
   ctx.font = '18px "Courier New", monospace';
-  ctx.fillText('点击「开始游戏」', CANVAS_W / 2, py + 108);
+  ctx.fillText('点击「开始游戏」  ·  当前难度 ' + getDiff().name, CANVAS_W / 2, py + 112);
   ctx.fillStyle = '#888';
   ctx.font = '13px "Courier New", monospace';
-  ctx.fillText('WASD 移动  ·  鼠标瞄准射击  ·  P 暂停', CANVAS_W / 2, py + 136);
+  ctx.fillText('WASD 移动  ·  鼠标瞄准射击  ·  P 暂停', CANVAS_W / 2, py + 142);
   ctx.fillStyle = '#666';
   ctx.font = '12px "Courier New", monospace';
-  ctx.fillText('连续击毁连击加分  ·  存活 90 秒挑战 BOSS', CANVAS_W / 2, py + 162);
+  ctx.fillText('连击加分  ·  90 秒迎击 BOSS  ·  击毁掉落装备', CANVAS_W / 2, py + 170);
   ctx.fillStyle = '#555';
-  ctx.fillText('查看「成就」解锁全部挑战', CANVAS_W / 2, py + 184);
+  ctx.fillText('打开「帮助图鉴」查看装备与任务  ·  「每日任务」每日刷新', CANVAS_W / 2, py + 196);
+  ctx.fillText('登录后上传排行榜，称号随最高分提升', CANVAS_W / 2, py + 218);
   ctx.textAlign = 'left';
 }
 
@@ -2399,11 +2985,21 @@ function resetGame() {
   btnPause.textContent = '暂停';
   newRecordBadge.style.display = 'none';
   gameOverModal.classList.remove('show');
+  if (window.GameCloud) {
+    const el = document.getElementById('submitStatus');
+    if (el) {
+      el.classList.remove('ok', 'err', 'warn');
+      el.textContent = GameCloud.user
+        ? '本局结束后将自动上传排行榜'
+        : '登录后可将成绩上传至全球排行榜';
+    }
+  }
 }
 
 function startGame() {
   initAudio();
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  startBgm();
   resetGame();
   gameState = STATE.PLAYING;
 }
@@ -2436,9 +3032,33 @@ function endGame() {
     finalBossReportEl.textContent = '本局击毁 ' + killCount + ' 个陨石 · ' + formatBossKillReport();
   }
   newRecordBadge.style.display = isNewRecord ? 'block' : 'none';
+  const diffLine = document.getElementById('finalDiffLine');
+  if (diffLine) diffLine.textContent = '难度：' + getDiff().name + '  ·  得分倍率 ×' + getDiff().scoreMult;
   onGameEndAchievements(isNewRecord);
+  if (window.GameCloud && GameCloud.applyLocalDaily) {
+    GameCloud.applyLocalDaily({
+      score: score,
+      surviveSec: Math.floor(gameTime / 60),
+      kills: killCount,
+      maxCombo: maxCombo,
+      pickups: runStats.pickups || 0,
+      bossKills: (runStats.boss1Killed ? 1 : 0) + (runStats.boss2Killed ? 1 : 0)
+    });
+  }
   gameOverModal.classList.add('show');
   playGameOverSound();
+  if (window.GameCloud) {
+    GameCloud.submitRun({
+      score: score,
+      surviveSec: Math.floor(gameTime / 60),
+      kills: killCount,
+      maxCombo: maxCombo,
+      pickups: runStats.pickups || 0,
+      difficulty: currentDifficulty,
+      boss1: !!runStats.boss1Killed,
+      boss2: !!runStats.boss2Killed
+    });
+  }
 }
 
 /** 移除陨石；giveScore 为 true 时计分并触发分裂（被子弹击毁） */
@@ -2774,6 +3394,7 @@ function gameLoop() {
 // ---------- 事件绑定 ----------
 
 document.addEventListener('keydown', (e) => {
+  if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
   if (e.key === 'Escape' && achievementModal.classList.contains('show')) {
     closeAchievementModal();
     return;
@@ -2830,6 +3451,26 @@ btnSound.addEventListener('click', () => {
   }
 });
 
+['easy', 'normal', 'hard'].forEach(function (id) {
+  const el = document.getElementById('diff' + id.charAt(0).toUpperCase() + id.slice(1));
+  if (el) el.addEventListener('click', function () { setDifficulty(id); });
+});
+setDifficulty(currentDifficulty);
+
+const btnSetBgm = document.getElementById('btnSetBgm');
+if (btnSetBgm) {
+  btnSetBgm.addEventListener('click', function () { setBgmEnabled(!bgmEnabled); });
+  setBgmEnabled(bgmEnabled);
+}
+const btnSetSound = document.getElementById('btnSetSound');
+if (btnSetSound) {
+  btnSetSound.addEventListener('click', function () {
+    soundEnabled = !soundEnabled;
+    saveSoundEnabled(soundEnabled);
+    updateSoundButton();
+  });
+}
+
 // ---------- 初始化 ----------
 loadAchievements();
 loadLifetimeStats();
@@ -2839,45 +3480,37 @@ updateAchievementBadge();
 gameLoop();
 
 </script>
+<script src="js/client.js"></script>
 
 <!--
 ============================================================
   使用说明
 ============================================================
-1. 双击本 HTML 文件即可在浏览器中打开游玩，无需安装或联网。
-2. 操作方式：
+【推荐】前后端完整版
+  1. 在项目目录执行：npm install
+  2. 再执行：npm start
+  3. 浏览器打开 http://localhost:3000
+  4. 注册/登录后，每局结束会自动上传全球排行榜，成就同步到云端
+
+【离线】仍可直接打开本页游玩（游客模式），最高分与成就保存在浏览器本地。
+
+操作方式：
    - W / A / S / D：控制飞船上下左右移动
    - 空格键 或 鼠标左键：朝鼠标方向发射子弹
    - P 键 或 Esc：暂停 / 继续
-3. 游戏规则：
-   - 击毁大陨石得 20 分，小陨石得 10 分（连击可获最高 2 倍加分）
-   - 2 秒内连续击毁维持连击，连击越高得分倍率越高
+游戏规则：
+   - 击毁大陨石得 20 分，小陨石得 10 分（连击可获最高倍率加分）
+   - 2 秒内连续击毁维持连击
    - 大陨石被击碎后会分裂成 2 块小陨石
    - 飞船共 3 点生命，被陨石撞击扣 1 点，归零则游戏结束
-   - 存活越久，陨石刷新越快，难度分三阶段平滑提升
-   - 击败第一 BOSS 后进入阶段二（刷新加快、陨石更快、掉落略增）
-   - 再存活一段时间后进入阶段三（同屏更多陨石、大陨石更频繁）
-   - 击败第一 BOSS 后周期性出现「陨石潮」，来袭前 2 秒屏幕预警
-   - 后期背景星空渐亮，画面边缘出现淡红危机光晕
-   - 击毁陨石有概率掉落装备，碰触即可拾取（单局有效）
-   - 装备：连发枪(15s)、穿透弹(12s)、护盾(20s)、加速推进(10s)、散弹枪(8s)、
-           激光束(7s，贯穿全屏)、回血装置(即时 +1 生命)
-   - 右下角面板显示当前生效装备及剩余时间
-   - 存活满 90 秒触发第一只 BOSS，击败后再存活 120 秒出现强化 BOSS
-   - 击败 BOSS 分别获得 500 / 1000 分高额奖励
-   - 分数达到 200/500/1000/2000 档时，陨石刷新会额外小幅加快
-   - BOSS 战期间暂停普通陨石刷新，击杀后恢复正常
-   - 游戏结束界面显示本局击毁陨石数与 BOSS 击杀战绩
-4. 按钮功能：
-   - 「开始游戏」：开始新一局
-   - 「重新挑战」：立即重新开始
-   - 「暂停/继续」：暂停游戏
-   - 「成就」：查看已解锁成就（共 18 项，本地保存）
-   - 「音效：开/关」：切换音效，设置会自动保存
-5. 本地存储：
-   - 历史最高分、音效开关、成就进度保存在浏览器 LocalStorage
-   - 关闭页面后再次打开，数据仍然保留
-   - 所有数据仅保存在本机，不会上传至任何服务器
+   - 存活越久难度分三阶段提升，击败 BOSS 后会出现陨石潮
+   - 装备：连发枪、穿透弹、护盾、加速推进、散弹枪、激光束、回血装置
+   - 存活 90 秒触发第一 BOSS，再存活 120 秒出现强化 BOSS
+按钮：
+   - 开始游戏 / 重新挑战 / 暂停
+   - 成就：查看 18 项成就
+   - 排行榜：全球 TOP 20（需后端在线）
+   - 登录：注册账号后同步战绩
 ============================================================
 -->
 
