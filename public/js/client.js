@@ -1,10 +1,15 @@
-/* 像素陨石防线 — 前端云服务客户端 */
+/**
+ * 像素陨石防线 — 浏览器端云服务客户端。
+ * 负责登录态、排行榜、战绩上传、每日任务与成就同步。
+ * 游客模式只写 localStorage；有 token 时请求同源 /api/*。
+ * 每日抽题算法必须与 server/content.js 保持一致。
+ */
 (function () {
   'use strict';
 
   const TOKEN_KEY = 'meteorDefense_token';
   const DAILY_KEY = 'meteorDefense_daily';
-  const API = '';
+  const API = ''; // 同源相对路径，避免 file:// 误打到外网
 
   const MISSION_POOL = [
     { id: 'survive_40', name: '立足防线', desc: '单局存活 40 秒', key: 'surviveSec', target: 40 },
@@ -42,6 +47,7 @@
     else localStorage.removeItem(TOKEN_KEY);
   }
 
+  /** 与后端 dateKey 相同：按北京时间切日，离线任务才会对上云端。 */
   function dateKey() {
     const d = new Date(Date.now() + 8 * 3600 * 1000);
     return d.toISOString().slice(0, 10);
@@ -72,7 +78,9 @@
     try {
       const saved = JSON.parse(localStorage.getItem(DAILY_KEY) || '{}');
       if (saved.date === key && saved.progress) return saved;
-    } catch (e) {}
+    } catch (e) {
+      // 本地 JSON 损坏时丢弃当日进度，不打断开局
+    }
     return { date: key, progress: {} };
   }
 
@@ -114,6 +122,7 @@
     } catch (e) {
       data = { ok: false, error: '服务器无响应' };
     }
+    // 非 2xx 或业务 ok:false 都当失败，统一给调用方 catch
     if (!res.ok || data.ok === false) {
       const err = new Error(data.error || ('请求失败 (' + res.status + ')'));
       err.status = res.status;
@@ -182,6 +191,7 @@
   function applyCloudUser(user) {
     GameCloud.user = user;
     if (typeof unlockedAchievements !== 'undefined') {
+      // 成就按 id 并集，解锁时间取更早的一条
       unlockedAchievements = mergeAchievements(unlockedAchievements, user.achievements);
       if (typeof saveAchievements === 'function') saveAchievements();
       if (typeof updateAchievementBadge === 'function') updateAchievementBadge();
@@ -275,6 +285,7 @@
     const local = loadLocalDaily();
     pickMissions(local.date).forEach(function (m) {
       const value = Number(run[m.key] || 0);
+      // 游客进度只升不降，登录后再与云端 max 合并
       local.progress[m.id] = Math.max(Number(local.progress[m.id] || 0), value);
     });
     saveLocalDaily(local);
@@ -456,7 +467,7 @@
       setSubmitStatus('游客模式：成绩仅保存在本机。登录后可上传全球排行榜。', 'warn');
       return;
     }
-    if (GameCloud.submitting) return;
+    if (GameCloud.submitting) return; // 防止结束弹窗重复触发连发 POST
     GameCloud.submitting = true;
     setSubmitStatus('正在上传战绩…', '');
     request('/api/scores', {

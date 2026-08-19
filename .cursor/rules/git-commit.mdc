@@ -1,0 +1,29 @@
+---
+description: Conventional Commits 中文提交说明规范
+alwaysApply: true
+---
+
+# Git 提交
+
+需要生成或执行 commit 时，先看 staged diff / staged stat，再按实际暂存内容写 message。参考 `git log --oneline -n 5`。
+
+## 格式
+
+第一行：`<type>(<scope>): <description>`
+
+- `type` 只能是：`feat`、`fix`、`docs`、`style`、`refactor`、`perf`、`test`、`chore`、`ci`、`build`
+- 能判断范围时必须写 `scope`
+- `description` 用中文，不超过 30 个汉字；除非用户明确要求，不用英文 description
+
+## 正文
+
+涉及多个文件、多个模块，或 staged diff 较多时，必须加中文正文：
+
+- 每条以 `- ` 开头
+- 只写实际变更，不写测试、影响、总结（除非 diff 里明确体现）
+
+## 执行
+
+- 用户只要 commit message：只输出 message，不解释
+- 用户要求直接提交：用该 message 执行 `git commit`
+- 用户未要求提交时，不要主动 commit

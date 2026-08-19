@@ -100,15 +100,22 @@
     #controls {
       margin-top: 14px;
       display: flex;
-      gap: 10px;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .ctrl-row {
+      display: flex;
+      gap: 8px;
       flex-wrap: wrap;
       justify-content: center;
     }
 
     button {
       font-family: inherit;
-      font-size: 14px;
-      padding: 8px 20px;
+      font-size: 13px;
+      padding: 8px 16px;
       border: 2px solid #555;
       background: #1a1a2e;
       color: #ccc;
@@ -129,6 +136,35 @@
     button.active {
       border-color: #4caf50;
       color: #4caf50;
+    }
+
+    button.btn-main {
+      border-color: #7ec8ff;
+      color: #7ec8ff;
+      background: #152033;
+    }
+
+    button.btn-bomb {
+      border-color: #ff8a65;
+      color: #ffab91;
+    }
+
+    button.btn-bomb:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 16px;
+    }
+
+    .pause-actions {
+      display: flex;
+      gap: 10px;
+      pointer-events: auto;
     }
 
     /* 游戏结束弹窗 */
@@ -215,6 +251,7 @@
       background: rgba(18, 18, 31, 0.85);
       border: 2px solid #7ec8ff;
       box-shadow: 0 0 24px rgba(126, 200, 255, 0.25);
+      pointer-events: auto;
     }
 
     #pauseOverlay span {
@@ -651,7 +688,11 @@
     <div id="pauseOverlay">
       <div class="pause-content">
         <span>暂 停</span>
-        <small>按 P 键继续游戏</small>
+        <small>P 继续 · B 轰炸 · V 自动射击</small>
+        <div class="pause-actions">
+          <button type="button" id="btnPauseResume" class="btn-main">继续</button>
+          <button type="button" id="btnPauseRetry">重新开始</button>
+        </div>
       </div>
     </div>
     <!-- 游戏结束弹窗 -->
@@ -683,21 +724,29 @@
         <p class="modal-footer" id="finalDailyLine">每日任务：登录后同步进度</p>
         <p class="modal-footer" id="finalBossReport">本局击毁 0 个陨石 · BOSS：未击杀</p>
         <p class="modal-footer" id="submitStatus">登录后可将成绩上传至全球排行榜</p>
-        <p class="modal-footer">点击「重新挑战」再来一局</p>
+        <p class="modal-footer">快捷键 R / Enter 再开一局</p>
+        <div class="modal-actions">
+          <button type="button" id="btnRetry" class="btn-main">再来一局</button>
+          <button type="button" id="btnMenu">返回菜单</button>
+        </div>
       </div>
     </div>
   </div>
 
   <div id="controls">
-    <button id="btnStart">开始游戏</button>
-    <button id="btnRetry">重新挑战</button>
-    <button id="btnPause">暂停</button>
-    <button id="btnAchievements" class="has-badge">成就<span class="badge" id="achBadge">0/0</span></button>
-    <button id="btnLeaderboard">排行榜</button>
-    <button id="btnMissions">每日任务</button>
-    <button id="btnHelp">帮助图鉴</button>
-    <button id="btnSettings">设置</button>
-    <button id="btnSound">音效：开</button>
+    <div class="ctrl-row">
+      <button type="button" id="btnStart" class="btn-main">开始游戏</button>
+      <button type="button" id="btnPause">暂停</button>
+      <button type="button" id="btnBomb" class="btn-bomb">轰炸 B · 1</button>
+      <button type="button" id="btnAutoFire">自动射击：关</button>
+    </div>
+    <div class="ctrl-row">
+      <button type="button" id="btnAchievements" class="has-badge">成就<span class="badge" id="achBadge">0/0</span></button>
+      <button type="button" id="btnLeaderboard">排行榜</button>
+      <button type="button" id="btnMissions">每日任务</button>
+      <button type="button" id="btnHelp">帮助图鉴</button>
+      <button type="button" id="btnSettings">设置</button>
+    </div>
   </div>
   <div class="diff-bar">
     <span>难度</span>
@@ -705,7 +754,7 @@
     <button type="button" id="diffNormal" data-diff="normal" class="active">标准</button>
     <button type="button" id="diffHard" data-diff="hard">困难</button>
   </div>
-  <p id="hint">WASD 移动 · 空格/鼠标射击 · P 暂停 · 登录后同步成就、每日任务与排行榜</p>
+  <p id="hint">WASD 移动 · 空格/鼠标射击 · B 轰炸 · V 自动射击 · P 暂停 · 结束后 R 再开</p>
 
   <!-- 【成就系统】成就列表弹窗 -->
   <div id="achievementModal">
@@ -827,6 +876,9 @@
           <li>W A S D 或方向键：移动飞船</li>
           <li>鼠标瞄准，空格 / 左键射击</li>
           <li>P 或 Esc：暂停</li>
+          <li>B：紧急轰炸（清周围陨石和弹幕，对 BOSS 削血）</li>
+          <li>V：开关自动射击</li>
+          <li>任务结束后按 R 或 Enter：立刻再开一局</li>
         </ul>
         <h3>计分规则</h3>
         <ul>
@@ -842,15 +894,17 @@
         <div class="eq-row"><span class="eq-dot" style="background:#00e676"></span>护盾 · 20 秒，抵挡一次撞击</div>
         <div class="eq-row"><span class="eq-dot" style="background:#40c4ff"></span>加速推进 · 10 秒，移速大幅提升</div>
         <div class="eq-row"><span class="eq-dot" style="background:#ff5252"></span>散弹枪 · 8 秒，扇形五发散弹</div>
-        <div class="eq-row"><span class="eq-dot" style="background:#00e5ff"></span>激光束 · 7 秒，贯穿全屏</div>
-        <div class="eq-row"><span class="eq-dot" style="background:#69f0ae"></span>回血装置 · 立即恢复 1 点生命</div>
-        <p>击毁陨石有概率掉落，靠近会磁吸。右下角显示剩余时间。</p>
+        <div class="eq-row"><span class="eq-dot" style="background:#00e5ff"></span>激光束 · 4 秒，需要对准，且与连发/散弹互斥</div>
+        <div class="eq-row"><span class="eq-dot" style="background:#69f0ae"></span>回血装置 · 立即恢复 1 点生命（满血不掉落）</div>
+        <p>击毁陨石有概率掉落，靠近会磁吸。右下角显示剩余时间。连发、散弹、激光同时只生效一种；已有火力时，另一种枪不会被吸过来（主动撞上去才会替换）。</p>
       </div>
       <div class="help-section" id="help-boss">
         <h3>双 BOSS 战</h3>
         <ul>
-          <li>存活 90 秒：第一 BOSS 登场，击败奖励 500 分</li>
-          <li>再存活 120 秒：强化 BOSS，弹幕更快，奖励 1200 分</li>
+          <li>约 45 秒：陨石突击（第一波高潮）</li>
+          <li>约 70 秒：第一 BOSS 登场，击败奖励 500 分</li>
+          <li>再存活约 75 秒：强化 BOSS，弹幕更快，奖励 1200 分</li>
+          <li>BOSS 登场会清掉场上陨石，开火前炮口会闪白</li>
           <li>BOSS 战期间暂停普通陨石刷新</li>
           <li>击败第一 BOSS 后会出现陨石潮，屏幕会提前预警</li>
         </ul>
@@ -864,6 +918,8 @@
         </ul>
         <h3>每日任务</h3>
         <p>每天北京时间 0 点刷新 3 项任务。游客进度保存在本机，登录后与云端合并。三项全部完成可解锁成就「日课达成」。</p>
+        <h3>紧急轰炸</h3>
+        <p>每局开局 1 枚（简单难度 2 枚），按 B 或点「轰炸」。清除周围陨石与 BOSS 弹幕，并对 BOSS 造成少量伤害。击败第一 BOSS 会补给 1 枚。</p>
       </div>
       <button class="ach-close" id="btnHelpClose">关闭</button>
     </div>
@@ -884,7 +940,7 @@
     <div class="app-panel">
       <div class="ach-header">
         <h2>设置</h2>
-        <span class="ach-progress">音效与音乐</span>
+        <span class="ach-progress">手感与音频</span>
       </div>
       <div class="auth-form">
         <div class="settings-row">
@@ -895,7 +951,23 @@
           <span>背景音乐</span>
           <button type="button" id="btnSetBgm">关</button>
         </div>
-        <p class="form-tip">音乐为程序生成的低频氛围音，无需外部文件。</p>
+        <div class="settings-row">
+          <span>自动射击</span>
+          <button type="button" id="btnSetAutoFire">关</button>
+        </div>
+        <div class="settings-row">
+          <span>瞄准辅助线</span>
+          <button type="button" id="btnSetAimLine">开</button>
+        </div>
+        <div class="settings-row">
+          <span>画面震动</span>
+          <button type="button" id="btnSetShake">开</button>
+        </div>
+        <div class="settings-row">
+          <span>掉落磁吸</span>
+          <button type="button" id="btnSetMagnet">开</button>
+        </div>
+        <p class="form-tip">音乐为程序生成的低频氛围音。轰炸每局有限，击败第一 BOSS 会补 1 枚。</p>
       </div>
       <button class="ach-close" id="btnSettingsClose">关闭</button>
     </div>
@@ -908,7 +980,7 @@
  * ============================================================ */
 
 // ========== 【可手动修改】动态难度三阶段（平滑加压） ==========
-const PHASE1_END_SEC = 90;                 // 阶段一：0~90 秒，基础平缓节奏
+const PHASE1_END_SEC = 70;
 const PHASE3_DELAY_AFTER_BOSS1_SEC = 60;   // 击败第一 BOSS 后再过此秒数进入阶段三
 const PHASE2_SPAWN_REDUCE = 8;             // 阶段二：额外缩短陨石刷新间隔（帧）
 const PHASE2_METEOR_SPEED_MULT = 1.12;     // 阶段二：陨石移速倍率
@@ -920,12 +992,16 @@ const PHASE3_LARGE_METEOR_RATIO = 0.82;    // 阶段三：大陨石占比（默�
 const PHASE2_BONUS_SPAWN_CHANCE = 0.15;    // 阶段二：额外多刷 1 颗概率
 
 // ========== 【可手动修改】陨石潮（击败第一 BOSS 后） ==========
-const SWARM_FIRST_DELAY_SEC = 45;          // 击败第一 BOSS 后首次陨石潮延迟（秒）
-const SWARM_INTERVAL_SEC = 55;             // 陨石潮间隔（秒）
+const SWARM_FIRST_DELAY_SEC = 40;          // 击败第一 BOSS 后首次陨石潮延迟（秒）
+const SWARM_INTERVAL_SEC = 50;             // 陨石潮间隔（秒）
 const SWARM_WARNING_SEC = 2;               // 陨石潮出现前预警秒数
 const SWARM_COUNT_MIN = 8;                 // 每波最少陨石数
 const SWARM_COUNT_MAX = 14;                // 每波最多陨石数
 const SWARM_SPAWN_SPREAD_FRAMES = 18;      // 波内陨石分散刷出总帧数
+const EARLY_SWARM_SEC = 45;                // 开局首次「陨石突击」，让第一高潮早于 BOSS
+const EARLY_SWARM_COUNT_MIN = 5;
+const EARLY_SWARM_COUNT_MAX = 7;
+const TUTORIAL_SEC = 8;                    // 开局只教躲避，刷怪更慢
 
 // ========== 【可手动修改】紧张氛围视觉 ==========
 const TENSION_STAR_BRIGHTNESS_RAMP = 0.000008; // 随存活时间星星渐亮速率
@@ -934,18 +1010,19 @@ const TENSION_VIGNETTE_START_SEC = 150;      // 边缘红晕开始出现秒数
 const TENSION_VIGNETTE_MAX_ALPHA = 0.22;     // 边缘红晕最大透明度
 
 // ========== 【可手动修改】BOSS 配置 ==========
-const BOSS_SPAWN_TIME_SEC = 90;           // 第一只 BOSS 出现所需存活秒数
-const BOSS2_DELAY_AFTER_BOSS1_SEC = 120;  // 【拓展】击败第一只 BOSS 后再存活秒数，第二 BOSS 登场
-const BOSS_MAX_HP = 80;                   // 第一只 BOSS 生命值
-const BOSS2_MAX_HP = 150;                 // 【拓展】第二只强化 BOSS 生命值
+const BOSS_SPAWN_TIME_SEC = 70;           // 第一只 BOSS：提前到约 70 秒，避免空等 90 秒
+const BOSS2_DELAY_AFTER_BOSS1_SEC = 75;  // 击败第一 BOSS 后再存活秒数，第二 BOSS 登场
+const BOSS_MAX_HP = 58;                   // 第一 BOSS 血量压短，避免变成「对着血条打」
+const BOSS2_MAX_HP = 120;                 // 第二 BOSS 仍明显更肉，但不拖成消耗战
 const BOSS_RADIUS = 55;                   // BOSS 碰撞/绘制半径
 const BOSS_SPEED = 0.65;                  // BOSS 移动速度
 const BOSS_SCORE_REWARD = 500;            // 击杀第一只 BOSS 奖励分数
 const BOSS2_SCORE_REWARD = 1200;          // 【拓展】击杀第二只 BOSS 奖励分数
-const BOSS_BULLET_INTERVAL = 85;          // 第一只 BOSS 弹幕发射间隔（帧）
-const BOSS2_BULLET_INTERVAL = 40;         // 【拓展】第二只 BOSS 弹幕间隔（更快）
-const BOSS_BULLET_SPEED = 3.2;            // 第一只 BOSS 弹幕速度
+const BOSS_BULLET_INTERVAL = 50;          // 第一 BOSS 弹幕更密，逼走位
+const BOSS2_BULLET_INTERVAL = 38;         // 第二 BOSS 弹幕间隔
+const BOSS_BULLET_SPEED = 3.5;            // 第一只 BOSS 弹幕速度
 const BOSS2_BULLET_SPEED = 4.0;           // 【拓展】第二只 BOSS 弹幕速度
+const BOSS_TELEGRAPH_FRAMES = 16;         // 开火前闪一下，让弹幕可预读
 const BOSS2_MOVE_INTERVAL = 65;           // 【节奏】第二 BOSS 变向间隔（帧，越小越灵活）
 const BOSS2_MOVE_LERP = 0.028;            // 【节奏】第二 BOSS 横向移动速率
 const BOSS2_VERTICAL_RANGE = 35;          // 【节奏】第二 BOSS 纵向机动幅度（像素）
@@ -955,9 +1032,9 @@ const BOSS_DEFEAT_DURATION = 150;         // 【手感】BOSS 击败提示停留
 const BOSS_EXPLODE_PARTICLE_COUNT = 90;   // BOSS 死亡大爆炸粒子数量
 
 // ========== 【可手动修改】激光束 / 分数难度 ==========
-const LASER_FIRE_INTERVAL = 14;           // 激光束装备：发射间隔（帧）
-const LASER_BEAM_WIDTH = 12;              // 激光束判定宽度
-const LASER_VISUAL_LIFE = 12;             // 激光束视觉持续帧数
+const LASER_FIRE_INTERVAL = 22;           // 激光间隔拉长，避免持续清屏
+const LASER_BEAM_WIDTH = 7;               // 判定收窄，需要对准才打中
+const LASER_VISUAL_LIFE = 10;
 
 /** 【拓展】分数档位：达到后额外缩短陨石刷新间隔（叠加，更平滑） */
 const SCORE_SPAWN_TIERS = [
@@ -972,7 +1049,7 @@ const COMBO_TIMEOUT = 120;           // 连击维持帧数（约2秒）
 const COMBO_MAX_MULT = 4;            // 连击最高倍率
 const MAX_PARTICLES = 180;           // 粒子池上限，防止卡顿
 const SCORE_POPUP_LIFE = 50;         // 飘字持续时间
-const BOSS_WARNING_SEC = 85;         // BOSS 预告开始秒数
+const BOSS_WARNING_SEC = 65;         // BOSS 预告开始秒数（略早于 70 秒登场）
 const DROP_MAGNET_RANGE = 90;        // 掉落物磁吸范围
 const DROP_MAGNET_FORCE = 0.35;      // 磁吸力度
 const DOUBLE_SPAWN_TIME = 3600;      // 存活此帧数后可能双重刷新
@@ -987,6 +1064,10 @@ const STORAGE_KEY_LIFETIME = 'meteorDefense_lifetimeStats';
 const STORAGE_KEY_DIFFICULTY = 'meteorDefense_difficulty';
 const STORAGE_KEY_BGM = 'meteorDefense_bgmEnabled';
 const STORAGE_KEY_DAILY = 'meteorDefense_daily';
+const STORAGE_KEY_AUTOFIRE = 'meteorDefense_autoFire';
+const STORAGE_KEY_AIMLINE = 'meteorDefense_aimLine';
+const STORAGE_KEY_SHAKE = 'meteorDefense_shake';
+const STORAGE_KEY_MAGNET = 'meteorDefense_magnet';
 
 const DIFFICULTY_PRESETS = {
   easy:   { id: 'easy',   name: '简单', spawnMult: 1.28, speedMult: 0.82, scoreMult: 0.75, hpBonus: 1 },
@@ -1005,7 +1086,7 @@ function getShipMaxHp() { return SHIP_MAX_HP + getDiff().hpBonus; }
 
 function setDifficulty(id) {
   if (!DIFFICULTY_PRESETS[id]) return;
-  if (gameState === STATE.PLAYING) return;
+  if (gameState === STATE.PLAYING) return; // 对局中改难度会破坏刷新节奏，只允许菜单切换
   currentDifficulty = id;
   localStorage.setItem(STORAGE_KEY_DIFFICULTY, id);
   ['easy', 'normal', 'hard'].forEach(function (d) {
@@ -1018,7 +1099,16 @@ function setDifficulty(id) {
 const SHIP_SIZE = 20;
 const SHIP_SPEED = 4;
 const SHIP_MAX_HP = 3;
-const SHIP_INVINCIBLE_TIME = 120; // 受伤后无敌帧（帧数）
+const SHIP_INVINCIBLE_TIME = 90;  // 受伤无敌约 1.5 秒：能脱身，但不能无限硬闯
+const METEOR_SPLIT_SAFE_FRAMES = 28; // 大陨石碎片刚弹出时不伤人，避免「打碎即死」
+const METEOR_DESPAWN_MARGIN = 90;    // 飞出画面后再回收，防止幽灵碰撞/对象堆积
+const DEATH_HOLD_FRAMES = 48;        // 阵亡后先看清撞击，再出结算
+const HITSTOP_KILL_FRAMES = 2;       // 击毁陨石轻微顿帧，让打击有重量
+const HITSTOP_BOSS_KILL_FRAMES = 6;  // 击破 BOSS 更长顿帧
+const BOMB_RADIUS = 210;              // 轰炸清场半径（像素）
+const BOMB_BOSS_DAMAGE = 10;          // 轰炸对 BOSS 削血，打不死一整只
+const BOMB_COOLDOWN_FRAMES = 36;      // 防止连按误触
+const BOMB_MAX = 3;
 const HIT_FLASH_FRAMES = 36;      // 【画面】受击白色闪烁时长（0.6秒≈36帧，纯视觉）
 const SHIP_TURN_SPEED = 0.14;     // 【手感】飞船朝向鼠标平滑转向速率（0~1）
 
@@ -1054,15 +1144,16 @@ const SHOTGUN_SPREAD = 0.55;          // 散弹枪扇形总张角（弧度）
 
 /** 【新增】七种装备定义：id、显示名、持续帧数（60帧≈1秒）、颜色；instant=true 为即时生效 */
 const EQUIPMENT_TYPES = {
-  burst:   { id: 'burst',   name: '连发枪',   duration: 15 * 60, color: '#ff9800' },
-  pierce:  { id: 'pierce',  name: '穿透弹',   duration: 12 * 60, color: '#e040fb' },
-  shield:  { id: 'shield',  name: '护盾',     duration: 20 * 60, color: '#00e676' },
-  speed:   { id: 'speed',   name: '加速推进', duration: 10 * 60, color: '#40c4ff' },
-  shotgun: { id: 'shotgun', name: '散弹枪',   duration: 8 * 60,  color: '#ff5252' },
-  laser:   { id: 'laser',   name: '激光束',   duration: 7 * 60,  color: '#00e5ff' },
-  repair:  { id: 'repair',  name: '回血装置', duration: 0,       color: '#69f0ae', instant: true }
+  burst:   { id: 'burst',   name: '连发枪',   short: '连发', duration: 15 * 60, color: '#ff9800' },
+  pierce:  { id: 'pierce',  name: '穿透弹',   short: '穿透', duration: 12 * 60, color: '#e040fb' },
+  shield:  { id: 'shield',  name: '护盾',     short: '护盾', duration: 20 * 60, color: '#00e676' },
+  speed:   { id: 'speed',   name: '加速推进', short: '加速', duration: 10 * 60, color: '#40c4ff' },
+  shotgun: { id: 'shotgun', name: '散弹枪',   short: '散弹', duration: 8 * 60,  color: '#ff5252' },
+  laser:   { id: 'laser',   name: '激光束',   short: '激光', duration: 4 * 60,  color: '#00e5ff' },
+  repair:  { id: 'repair',  name: '回血装置', short: '回血', duration: 0,       color: '#69f0ae', instant: true }
 };
 const EQUIPMENT_LIST = Object.values(EQUIPMENT_TYPES);
+const FIRE_WEAPON_IDS = ['burst', 'shotgun', 'laser']; // 火力互斥，避免叠满变成无脑清屏
 
 // ---------- 【画面】背景视差星星 ----------
 const BG_STAR_FAR_COUNT = 50;   // 远景星数量（慢）
@@ -1074,6 +1165,8 @@ const ctx = canvas.getContext('2d');
 const btnStart = document.getElementById('btnStart');
 const btnRetry = document.getElementById('btnRetry');
 const btnPause = document.getElementById('btnPause');
+const btnBomb = document.getElementById('btnBomb');
+const btnAutoFire = document.getElementById('btnAutoFire');
 const btnAchievements = document.getElementById('btnAchievements');
 const btnSound = document.getElementById('btnSound');
 const achievementModal = document.getElementById('achievementModal');
@@ -1155,14 +1248,14 @@ function unlockAchievement(id) {
   if (!def) return;
   unlockedAchievements[id] = Date.now();
   saveAchievements();
-  achievementToasts.push({
+  // 先入队，画面上一次只出一条，避免开局成就连弹
+  achievementToastQueue.push({
     name: def.name,
     desc: def.desc,
     icon: def.icon,
     life: 150,
     maxLife: 150
   });
-  playAchievementSound();
   updateAchievementBadge();
   if (window.GameCloud) GameCloud.syncAchievements();
 }
@@ -1248,8 +1341,15 @@ function closeAchievementModal() {
   achievementModal.classList.remove('show');
 }
 
-/** 【成就】画布右侧解锁 Toast */
+/** 【成就】一次只展示一条 Toast；开局教学秒内先憋着，避免连弹盖住操作提示 */
 function drawAchievementToasts() {
+  if (achievementToasts.length === 0 && achievementToastQueue.length > 0) {
+    const stillTeaching = gameState === STATE.PLAYING && gameTime < TUTORIAL_SEC * 60;
+    if (!stillTeaching) {
+      achievementToasts.push(achievementToastQueue.shift());
+      playAchievementSound();
+    }
+  }
   let y = CANVAS_H - 20;
   for (let i = achievementToasts.length - 1; i >= 0; i--) {
     const t = achievementToasts[i];
@@ -1313,10 +1413,17 @@ function playBossAppearSound() { playTone(110, 0.4, 'sawtooth', 0.1); playTone(1
 function playBossDeathSound()  { playTone(80, 0.5, 'sawtooth', 0.12); playTone(40, 0.6, 'triangle', 0.1); }
 function playComboSound(mult)  { playTone(440 + mult * 80, 0.07, 'square', 0.04); }
 function playAchievementSound() { playTone(523, 0.1, 'square', 0.06); playTone(659, 0.1, 'square', 0.05); playTone(784, 0.15, 'square', 0.05); }
+function playBombSound() {
+  playTone(90, 0.28, 'sawtooth', 0.14);
+  playTone(180, 0.18, 'square', 0.08);
+  playTone(40, 0.35, 'triangle', 0.1);
+}
 
 function updateSoundButton() {
-  btnSound.textContent = soundEnabled ? '音效：开' : '音效：关';
-  btnSound.classList.toggle('active', soundEnabled);
+  if (btnSound) {
+    btnSound.textContent = soundEnabled ? '音效：开' : '音效：关';
+    btnSound.classList.toggle('active', soundEnabled);
+  }
   const setBtn = document.getElementById('btnSetSound');
   if (setBtn) {
     setBtn.textContent = soundEnabled ? '开' : '关';
@@ -1366,6 +1473,66 @@ function setBgmEnabled(on) {
   }
 }
 
+function loadFlag(key, fallback) {
+  const val = localStorage.getItem(key);
+  if (val === null) return fallback;
+  return val === 'true';
+}
+
+let autoFire = loadFlag(STORAGE_KEY_AUTOFIRE, false);
+let aimLineEnabled = loadFlag(STORAGE_KEY_AIMLINE, true);
+let shakeEnabled = loadFlag(STORAGE_KEY_SHAKE, true);
+let magnetEnabled = loadFlag(STORAGE_KEY_MAGNET, true);
+
+function setFlagButton(id, on) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.textContent = on ? '开' : '关';
+  btn.classList.toggle('active', on);
+}
+
+function updateAutoFireButton() {
+  if (btnAutoFire) {
+    btnAutoFire.textContent = autoFire ? '自动射击：开' : '自动射击：关';
+    btnAutoFire.classList.toggle('active', autoFire);
+  }
+  setFlagButton('btnSetAutoFire', autoFire);
+}
+
+function setAutoFire(on) {
+  autoFire = !!on;
+  localStorage.setItem(STORAGE_KEY_AUTOFIRE, String(autoFire));
+  updateAutoFireButton();
+}
+
+function setAimLine(on) {
+  aimLineEnabled = !!on;
+  localStorage.setItem(STORAGE_KEY_AIMLINE, String(aimLineEnabled));
+  setFlagButton('btnSetAimLine', aimLineEnabled);
+}
+
+function setShake(on) {
+  shakeEnabled = !!on;
+  localStorage.setItem(STORAGE_KEY_SHAKE, String(shakeEnabled));
+  setFlagButton('btnSetShake', shakeEnabled);
+}
+
+function setMagnet(on) {
+  magnetEnabled = !!on;
+  localStorage.setItem(STORAGE_KEY_MAGNET, String(magnetEnabled));
+  setFlagButton('btnSetMagnet', magnetEnabled);
+}
+
+function getStartBombs() {
+  return currentDifficulty === 'easy' ? 2 : 1;
+}
+
+function updateBombButton() {
+  if (!btnBomb) return;
+  btnBomb.textContent = '轰炸 B · ' + bombCount;
+  btnBomb.disabled = bombCount <= 0 || gameState !== STATE.PLAYING;
+}
+
 // ---------- 游戏状态 ----------
 const STATE = { MENU: 0, PLAYING: 1, GAMEOVER: 2, PAUSED: 3 };
 let gameState = STATE.MENU;
@@ -1390,7 +1557,7 @@ const ACHIEVEMENTS = [
   { id: 'score_1000',   name: '星际王牌', desc: '单局得分达到 1000',        icon: '👑' },
   { id: 'survive_30',   name: '立足太空', desc: '单局存活 30 秒',           icon: '🛸' },
   { id: 'survive_60',   name: '持久作战', desc: '单局存活 60 秒',           icon: '⏱' },
-  { id: 'survive_90',   name: '直面风暴', desc: '单局存活 90 秒（BOSS 抵达）', icon: '⚡' },
+  { id: 'survive_90',   name: '直面风暴', desc: '单局存活至第一 BOSS 抵达', icon: '⚡' },
   { id: 'combo_5',      name: '连击高手', desc: '单局达成 5 连击',          icon: '🔗' },
   { id: 'combo_10',     name: '连击狂魔', desc: '单局达成 10 连击',         icon: '⛓' },
   { id: 'kills_20',     name: '陨石猎手', desc: '单局击毁 20 个陨石',       icon: '🎯' },
@@ -1412,7 +1579,8 @@ const ACHIEVEMENTS = [
 let unlockedAchievements = {};   // { id: unlockTime }
 let lifetimeStats = { totalGames: 0, totalKills: 0, totalBossKills: 0 };
 let runStats = { damageTaken: 0, equipTypes: {}, bossKilled: false };
-let achievementToasts = [];      // 游戏中解锁提示 { name, desc, life, maxLife }
+let achievementToasts = [];
+let achievementToastQueue = [];
 let lastSurviveCheckSec = 0;     // 存活成就检测节流
 
 // 输入状态
@@ -1433,6 +1601,9 @@ let spawnTimer = 0;
 let spawnInterval = BASE_SPAWN_INTERVAL;
 let gameTime = 0;
 let fireCooldown = 0;
+let bombCount = 1;
+let bombCooldown = 0;
+let bombFlash = 0;
 
 // 【新增】装备掉落与增益状态（单局有效，resetGame/endGame 时清空）
 let drops = [];              // 屏幕上的掉落物
@@ -1458,6 +1629,8 @@ let nextSwarmGameTime = 0;        // 下一波陨石潮触发的 gameTime
 let swarmMeteorsLeft = 0;         // 当前波次剩余待刷陨石数
 let swarmSpawnCooldown = 0;       // 波内刷怪间隔倒计时
 let swarmWarningActive = false;   // 是否处于陨石潮预警阶段
+let deathHoldTimer = 0;           // 阵亡后结算延迟
+let hitstopFrames = 0;            // 击杀顿帧剩余
 
 // 【画面】深空视差星星（远/近两层，纯装饰）
 let bgStarsFar = [];
@@ -1573,6 +1746,36 @@ function fireBullet() {
   playShootSound();
 }
 
+/** 紧急轰炸：清周围陨石与弹幕，对 BOSS 只削一层血，次数有限 */
+function fireBomb() {
+  if (gameState !== STATE.PLAYING || deathHoldTimer > 0) return;
+  if (!ship || bombCount <= 0 || bombCooldown > 0) return;
+  bombCount--;
+  bombCooldown = BOMB_COOLDOWN_FRAMES;
+  bombFlash = 20;
+  ship.invincible = Math.max(ship.invincible, 40);
+  addScreenShake(12);
+  playBombSound();
+  createExplosion(ship.x, ship.y, '#ffab40', 28);
+
+  for (let i = meteors.length - 1; i >= 0; i--) {
+    const m = meteors[i];
+    if (Math.hypot(m.x - ship.x, m.y - ship.y) <= BOMB_RADIUS + m.radius) {
+      destroyMeteor(i, true, true);
+    }
+  }
+  bossBullets = [];
+  if (boss && Math.hypot(boss.x - ship.x, boss.y - ship.y) <= BOMB_RADIUS + BOSS_RADIUS) {
+    boss.hp -= BOMB_BOSS_DAMAGE;
+    createHitSparks(boss.x, boss.y, '#ffab40');
+    if (boss.hp <= 0) {
+      destroyBoss();
+      addHitstop(HITSTOP_BOSS_KILL_FRAMES);
+    }
+  }
+  updateBombButton();
+}
+
 // ---------- 陨石 ----------
 /** 【外观优化】生成不规则多边形轮廓与坑点（仅视觉，不影响碰撞半径） */
 function generateMeteorShape(type, radius) {
@@ -1638,7 +1841,8 @@ function createMeteor(x, y, type, speedMult) {
     rotSpeed: (Math.random() < 0.5 ? -1 : 1) * (0.006 + Math.random() * 0.028),
     shapePoints: shape.points,
     craters: shape.craters,       // 【外观优化】坑点纹理
-    shapeStyle: shape.style
+    shapeStyle: shape.style,
+    safeFrames: 0                 // 分裂碎片的短暂无伤窗
   };
 }
 
@@ -1685,11 +1889,14 @@ function getEffectiveSpawnInterval() {
   const phase = getDifficultyPhase();
   if (phase >= 2) interval -= PHASE2_SPAWN_REDUCE;
   if (phase >= 3) interval -= PHASE3_SPAWN_REDUCE;
+  if (gameTime < TUTORIAL_SEC * 60) interval *= 1.55;
+  // spawnMult<1 表示刷新更快；乘完后再夹紧，避免困难模式间隔变成负数
   return Math.max(MIN_SPAWN_INTERVAL, interval * getDiff().spawnMult);
 }
 
 /** 单次刷新额外多刷几颗（阶段三密度更高） */
 function getExtraSpawnsOnTick() {
+  if (gameTime < TUTORIAL_SEC * 60) return 0;
   const phase = getDifficultyPhase();
   let extra = 0;
   if (phase === 2 && Math.random() < PHASE2_BONUS_SPAWN_CHANCE) extra++;
@@ -1711,10 +1918,10 @@ function getTensionLevel() {
   return Math.min(TENSION_STAR_BRIGHTNESS_MAX + 0.18, timePart + phaseBonus + phase3Bonus);
 }
 
-/** 【节奏】陨石潮：击败第一 BOSS 后周期性从四方向涌入 */
+/** 【节奏】陨石潮：开局 45 秒突击一次，击败第一 BOSS 后再周期性涌入 */
 function updateMeteorSwarm() {
   swarmWarningActive = false;
-  if (!boss1Defeated || boss || nextSwarmGameTime <= 0) return;
+  if (boss || nextSwarmGameTime <= 0) return;
 
   const warningFrames = SWARM_WARNING_SEC * 60;
   const timeToSwarm = nextSwarmGameTime - gameTime;
@@ -1725,7 +1932,10 @@ function updateMeteorSwarm() {
   if (gameTime < nextSwarmGameTime) return;
 
   if (swarmMeteorsLeft <= 0) {
-    swarmMeteorsLeft = SWARM_COUNT_MIN + Math.floor(Math.random() * (SWARM_COUNT_MAX - SWARM_COUNT_MIN + 1));
+    const isEarly = !boss1Defeated;
+    const minC = isEarly ? EARLY_SWARM_COUNT_MIN : SWARM_COUNT_MIN;
+    const maxC = isEarly ? EARLY_SWARM_COUNT_MAX : SWARM_COUNT_MAX;
+    swarmMeteorsLeft = minC + Math.floor(Math.random() * (maxC - minC + 1));
     swarmSpawnCooldown = 0;
   }
 
@@ -1738,7 +1948,9 @@ function updateMeteorSwarm() {
   }
 
   if (swarmMeteorsLeft <= 0) {
-    nextSwarmGameTime = gameTime + SWARM_INTERVAL_SEC * 60;
+    nextSwarmGameTime = boss1Defeated
+      ? gameTime + SWARM_INTERVAL_SEC * 60
+      : 0;
   }
 }
 
@@ -1751,10 +1963,10 @@ function drawSwarmWarning() {
   ctx.globalAlpha = 0.85 + Math.sin(gameTime * 0.25) * 0.15;
   ctx.font = 'bold ' + Math.floor(28 * pulse) + 'px "Courier New", monospace';
   ctx.fillStyle = '#ff5252';
-  ctx.fillText('⚠  陨石潮来袭  ⚠', CANVAS_W / 2, CANVAS_H / 2 - 28);
+  ctx.fillText(boss1Defeated ? '⚠  陨石潮来袭  ⚠' : '⚠  陨石突击  ⚠', CANVAS_W / 2, CANVAS_H / 2 - 28);
   ctx.font = '14px "Courier New", monospace';
   ctx.fillStyle = '#ffab91';
-  ctx.fillText('四面八方 · 准备应对！', CANVAS_W / 2, CANVAS_H / 2 + 2);
+  ctx.fillText(boss1Defeated ? '四面八方 · 准备应对！' : '第一波高潮 · 躲开密集陨石', CANVAS_W / 2, CANVAS_H / 2 + 2);
   ctx.textAlign = 'left';
   ctx.restore();
 }
@@ -1793,7 +2005,8 @@ function createBoss(tier) {
     targetX: CANVAS_W / 2,
     entered: false,
     patternPhase: 0,       // 【拓展】第二 BOSS 弹幕模式相位
-    targetY: null          // 【节奏】第二 BOSS 纵向目标
+    targetY: null,         // 【节奏】第二 BOSS 纵向目标
+    telegraph: 0           // 开火前闪白，给玩家读招时间
   };
 }
 
@@ -1802,6 +2015,13 @@ function spawnBoss(tier) {
   bossAlertTimer = BOSS_ALERT_DURATION;
   addScreenShake(10);
   playBossAppearSound();
+  // 街机惯例：BOSS 登场清掉场上陨石，避免「弹幕+石头」双重不讲理
+  for (let i = meteors.length - 1; i >= 0; i--) {
+    createExplosion(meteors[i].x, meteors[i].y, meteors[i].type === 'large' ? '#795548' : '#8d6e63', 10);
+    meteors.splice(i, 1);
+  }
+  swarmMeteorsLeft = 0;
+  swarmWarningActive = false;
 }
 
 /** 【新增】检测是否到达 BOSS 出场时间 */
@@ -1826,9 +2046,14 @@ function fireBossBullet() {
   const spawnY = boss.y + BOSS_RADIUS * 0.5;
 
   if (boss.tier === 1) {
-    // 第一 BOSS：三向扇形弹幕
-    for (let i = -1; i <= 1; i++) {
-      const a = angle + i * 0.18;
+    // 第一 BOSS：三向为主，每三次扩成五向，避免纯直线走位就能躲
+    boss.patternPhase = (boss.patternPhase || 0) + 1;
+    const wide = boss.patternPhase % 3 === 0;
+    const from = wide ? -2 : -1;
+    const to = wide ? 2 : 1;
+    const spread = wide ? 0.16 : 0.18;
+    for (let i = from; i <= to; i++) {
+      const a = angle + i * spread;
       bossBullets.push({
         x: boss.x, y: spawnY,
         vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, life: 240
@@ -1907,12 +2132,17 @@ function updateBoss() {
     boss.y = Math.max(minY, Math.min(maxY, boss.y));
   }
 
-  // 定时发射弹幕（第二 BOSS 间隔更短）
-  boss.shootTimer++;
-  const shootInterval = boss.tier === 2 ? BOSS2_BULLET_INTERVAL : BOSS_BULLET_INTERVAL;
-  if (boss.shootTimer >= shootInterval) {
-    boss.shootTimer = 0;
-    fireBossBullet();
+  // 定时发射弹幕：先闪一下再出弹，让走位有依据
+  if (boss.telegraph > 0) {
+    boss.telegraph--;
+    if (boss.telegraph === 0) fireBossBullet();
+  } else {
+    boss.shootTimer++;
+    const shootInterval = boss.tier === 2 ? BOSS2_BULLET_INTERVAL : BOSS_BULLET_INTERVAL;
+    if (boss.shootTimer >= shootInterval) {
+      boss.shootTimer = 0;
+      boss.telegraph = BOSS_TELEGRAPH_FRAMES;
+    }
   }
 }
 
@@ -1943,7 +2173,7 @@ function updateBossBullets() {
         createExplosion(ship.x, ship.y, '#ff5252', 10);
         playHurtSound();
         if (ship.hp <= 0) {
-          endGame();
+          beginDeath();
           return;
         }
       }
@@ -1978,6 +2208,8 @@ function destroyBoss() {
     boss1Defeated = true;
     boss1DefeatedAt = gameTime;
     nextSwarmGameTime = gameTime + SWARM_FIRST_DELAY_SEC * 60; // 【节奏】安排首次陨石潮
+    bombCount = Math.min(BOMB_MAX, bombCount + 1); // 击破旗舰补给一枚轰炸
+    updateBombButton();
   }
   if (tier === 2) runStats.boss2Killed = true;
   runStats.bossKilled = true;
@@ -2012,7 +2244,20 @@ function clearBossState() {
 
 // ---------- 【新增】装备掉落 ----------
 function spawnDrop(x, y) {
-  const def = EQUIPMENT_LIST[Math.floor(Math.random() * EQUIPMENT_LIST.length)];
+  let pool = EQUIPMENT_LIST.slice();
+  // 满血不刷回血，避免「捡了没奖励」的空反馈
+  if (ship && ship.hp >= getShipMaxHp()) {
+    pool = pool.filter(function (d) { return d.id !== 'repair'; });
+  }
+  // 已有火力时，多数时候不再刷另一种枪，减少被迫换武器
+  const currentFire = FIRE_WEAPON_IDS.find(function (id) { return hasEquipment(id); });
+  if (currentFire && Math.random() < 0.65) {
+    pool = pool.filter(function (d) {
+      return FIRE_WEAPON_IDS.indexOf(d.id) < 0 || d.id === currentFire;
+    });
+  }
+  if (pool.length === 0) pool = EQUIPMENT_LIST.slice();
+  const def = pool[Math.floor(Math.random() * pool.length)];
   drops.push({
     x, y,
     type: def.id,
@@ -2024,6 +2269,14 @@ function spawnDrop(x, y) {
 
 function hasEquipment(typeId) {
   return activeEquipments.some(e => e.type === typeId);
+}
+
+/** 已有另一种火力时，磁吸会抢走当前枪；这种掉落只允许主动撞上去 */
+function isCompetingFireDrop(typeId) {
+  if (FIRE_WEAPON_IDS.indexOf(typeId) < 0) return false;
+  return FIRE_WEAPON_IDS.some(function (id) {
+    return id !== typeId && hasEquipment(id);
+  });
 }
 
 function activateEquipment(typeId) {
@@ -2057,9 +2310,14 @@ function activateEquipment(typeId) {
 
   const existing = activeEquipments.find(e => e.type === typeId);
   if (existing) {
-    existing.remaining = def.duration; // 重复拾取刷新持续时间
+    existing.remaining = def.duration;
   } else {
     activeEquipments.push({ type: typeId, remaining: def.duration });
+  }
+  if (FIRE_WEAPON_IDS.indexOf(typeId) >= 0) {
+    activeEquipments = activeEquipments.filter(function (e) {
+      return e.type === typeId || FIRE_WEAPON_IDS.indexOf(e.type) < 0;
+    });
   }
   if (typeId === 'shield') shieldActive = true;
   runStats.equipTypes[typeId] = true; // 【成就】单局装备收集
@@ -2253,7 +2511,21 @@ function circleCollision(a, b, rA, rB) {
 
 // ---------- 【体验优化】手感反馈工具 ----------
 function addScreenShake(amount) {
+  if (!shakeEnabled) return;
   screenShake = Math.min(screenShake + amount, 18);
+}
+
+function addHitstop(frames) {
+  hitstopFrames = Math.max(hitstopFrames, frames);
+}
+
+/** 阵亡先停手、看清撞击，再弹出结算；避免「死了却不知道撞到哪」 */
+function beginDeath() {
+  if (deathHoldTimer > 0 || gameState !== STATE.PLAYING) return;
+  deathHoldTimer = DEATH_HOLD_FRAMES;
+  hitstopFrames = 0; // 阵亡镜头立刻开始，不被击杀顿帧挡住
+  if (ship) ship.invincible = DEATH_HOLD_FRAMES;
+  addScreenShake(10);
 }
 
 function addDamageFlash() {
@@ -2263,7 +2535,7 @@ function addDamageFlash() {
 
 function getComboMultiplier() {
   if (combo < 2) return 1;
-  return Math.min(2, 1 + (combo - 1) * 0.25);
+  return Math.min(COMBO_MAX_MULT, 1 + (combo - 1) * 0.25);
 }
 
 /** 注册一次击杀：连击、计分飘字、屏幕反馈 */
@@ -2314,6 +2586,15 @@ function togglePause() {
   gameState = isPaused ? STATE.PAUSED : STATE.PLAYING;
   pauseOverlay.classList.toggle('show', isPaused);
   btnPause.textContent = isPaused ? '继续' : '暂停';
+}
+
+function returnToMenu() {
+  isPaused = false;
+  pauseOverlay.classList.remove('show');
+  if (btnPause) btnPause.textContent = '暂停';
+  gameOverModal.classList.remove('show');
+  gameState = STATE.MENU;
+  updateBombButton();
 }
 
 // ---------- 绘制函数（像素简约风格） ----------
@@ -2485,77 +2766,264 @@ function drawBullet(b) {
   ctx.fillRect(b.x - 1, b.y - 1, 2, 2);
 }
 
-/** 【新增】绘制 BOSS 弹幕 */
+/** 【新增】绘制 BOSS 弹幕（球体高光，纯视觉） */
 function drawBossBullet(bb) {
-  ctx.fillStyle = 'rgba(255, 80, 80, 0.3)';
+  const r = BOSS_BULLET_SIZE;
+  ctx.fillStyle = 'rgba(255, 60, 70, 0.22)';
   ctx.beginPath();
-  ctx.arc(bb.x, bb.y, BOSS_BULLET_SIZE + 2, 0, Math.PI * 2);
+  ctx.arc(bb.x, bb.y + 1, r + 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#7a1020';
+  ctx.beginPath();
+  ctx.arc(bb.x, bb.y + 1, r, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = '#ff4444';
   ctx.beginPath();
-  ctx.arc(bb.x, bb.y, BOSS_BULLET_SIZE, 0, Math.PI * 2);
+  ctx.arc(bb.x, bb.y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ff8a80';
+  ctx.beginPath();
+  ctx.arc(bb.x - 1.4, bb.y - 1.6, r * 0.45, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(bb.x - 2, bb.y - 3, 2, 2);
+}
+
+function fillBossEllipse(x, y, rx, ry, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
   ctx.fill();
 }
 
-/** 【新增】绘制 BOSS 本体 */
+function strokeBossEllipse(x, y, rx, ry, color, width) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.beginPath();
+  ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+/** 侧翼多边形：上沿亮、下沿暗，做出厚度 */
+function drawBossWing(dir, r, hullDeep, hullMid, hullHi, accent) {
+  ctx.beginPath();
+  ctx.moveTo(dir * 16, -10);
+  ctx.lineTo(dir * (r + 20), 4);
+  ctx.lineTo(dir * (r + 16), 18);
+  ctx.lineTo(dir * 12, 20);
+  ctx.closePath();
+  ctx.fillStyle = hullDeep;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(dir * 16, -10);
+  ctx.lineTo(dir * (r + 20), 4);
+  ctx.lineTo(dir * (r + 10), 8);
+  ctx.lineTo(dir * 14, -2);
+  ctx.closePath();
+  ctx.fillStyle = hullHi;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(dir * 14, 4);
+  ctx.lineTo(dir * (r + 8), 12);
+  ctx.lineTo(dir * (r + 4), 18);
+  ctx.lineTo(dir * 12, 16);
+  ctx.closePath();
+  ctx.fillStyle = hullMid;
+  ctx.fill();
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(dir * 18, -6);
+  ctx.lineTo(dir * (r + 12), 6);
+  ctx.stroke();
+}
+
+/** 炮管：暗底 + 中段 + 顶高光，开火前炮口发白 */
+function drawBossCannon(x, y, len, telegraph, accent) {
+  ctx.fillStyle = '#1a1224';
+  ctx.fillRect(x - 5, y, 10, len + 2);
+  ctx.fillStyle = '#3a2a55';
+  ctx.fillRect(x - 4, y, 8, len);
+  ctx.fillStyle = '#7e6aa8';
+  ctx.fillRect(x - 3, y, 3, len);
+  ctx.fillStyle = '#120818';
+  ctx.fillRect(x - 3, y + len - 3, 6, 4);
+  ctx.fillStyle = accent;
+  ctx.fillRect(x - 2, y + len - 2, 4, 2);
+  if (telegraph > 0) {
+    const t = 1 - telegraph / BOSS_TELEGRAPH_FRAMES;
+    ctx.globalAlpha = 0.3 + 0.7 * t;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(x, y + len + 2, 5 + t * 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+/**
+ * 【外观】立体像素母舰。碰撞仍用 BOSS_RADIUS 的圆；
+ * 机翼、光环、引擎焰只多画，不改判定。
+ */
 function drawBoss(b) {
   ctx.save();
   ctx.translate(b.x, b.y);
-  const pulse = Math.sin(gameTime * 0.06) * 2;
-  const r = BOSS_RADIUS + pulse;
+  const t2 = b.tier === 2;
+  const pulse = Math.sin(gameTime * 0.06);
+  const r = BOSS_RADIUS;
+  ctx.translate(0, pulse * 1.6);
 
-  // 外圈能量环
-  ctx.strokeStyle = b.tier === 2 ? '#ff1744' : '#e040fb';
-  ctx.lineWidth = 3;
+  const hullDeep = t2 ? '#3a0018' : '#160822';
+  const hullMid = t2 ? '#6d1438' : '#3c1868';
+  const hullHi = t2 ? '#b03a5c' : '#6a3aad';
+  const hullTop = t2 ? '#e888a0' : '#b49ae0';
+  const accent = t2 ? '#ff1744' : '#e040fb';
+  const core = t2 ? '#ff5252' : '#ff4081';
+  const coreHot = t2 ? '#ffe082' : '#f8bbd0';
+
+  // 落地铁影，把舰体从背景里托起来
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.38)';
   ctx.beginPath();
-  ctx.arc(0, 0, r + 6, 0, Math.PI * 2);
-  ctx.stroke();
+  ctx.ellipse(3, r * 0.78, r * 0.95, r * 0.26, 0, 0, Math.PI * 2);
+  ctx.fill();
 
-  // 主体
-  ctx.fillStyle = b.tier === 2 ? '#4a0020' : '#2a1040';
-  ctx.fillRect(-r, -r * 0.7, r * 2, r * 1.4);
-  ctx.fillStyle = b.tier === 2 ? '#880e4f' : '#6a1b9a';
-  ctx.fillRect(-r + 8, -r * 0.55, r * 2 - 16, r * 1.1);
-  // 核心
-  ctx.fillStyle = '#ff4081';
-  ctx.fillRect(-16, -12, 32, 24);
-  ctx.fillStyle = '#f50057';
-  ctx.fillRect(-10, -6, 20, 12);
-  // 侧翼炮口
-  ctx.fillStyle = '#311b92';
-  ctx.fillRect(-r - 4, -8, 12, 16);
-  ctx.fillRect(r - 8, -8, 12, 16);
-  // 眼睛
-  ctx.fillStyle = '#ffeb3b';
-  ctx.fillRect(-20, -r * 0.35, 10, 10);
-  ctx.fillRect(10, -r * 0.35, 10, 10);
+  // 透视能量环（压扁的椭圆，比正圆更像绕舰飞行）
+  ctx.globalAlpha = 0.28 + pulse * 0.1;
+  strokeBossEllipse(0, 10, r + 16, (r + 16) * 0.34, accent, 2);
+  ctx.globalAlpha = 0.16;
+  strokeBossEllipse(0, 16, r + 26, (r + 26) * 0.28, accent, 1.5);
+  if (t2) {
+    ctx.globalAlpha = 0.2 + pulse * 0.08;
+    strokeBossEllipse(0, 4, r + 8, (r + 8) * 0.4, '#ff8a80', 1.5);
+  }
+  ctx.globalAlpha = 1;
+
+  // 尾部引擎：下层暗红，上层亮核
+  const flame = 10 + Math.sin(gameTime * 0.28) * 3;
+  fillBossEllipse(0, r * 0.55, 22, 10, t2 ? 'rgba(255,80,40,0.2)' : 'rgba(180,80,255,0.18)');
+  ctx.fillStyle = t2 ? '#ff6e40' : '#ab47bc';
+  ctx.fillRect(-10, r * 0.38, 8, flame);
+  ctx.fillRect(2, r * 0.38, 8, flame);
+  ctx.fillStyle = '#ffe082';
+  ctx.fillRect(-8, r * 0.4, 4, flame * 0.55);
+  ctx.fillRect(4, r * 0.4, 4, flame * 0.55);
+
+  drawBossWing(-1, r, hullDeep, hullMid, hullHi, accent);
+  drawBossWing(1, r, hullDeep, hullMid, hullHi, accent);
+
+  if (t2) {
+    ctx.fillStyle = hullDeep;
+    ctx.beginPath();
+    ctx.moveTo(-18, -r * 0.55);
+    ctx.lineTo(-6, -r * 0.92);
+    ctx.lineTo(0, -r * 0.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(18, -r * 0.55);
+    ctx.lineTo(6, -r * 0.92);
+    ctx.lineTo(0, -r * 0.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = hullHi;
+    ctx.fillRect(-14, -r * 0.62, 5, 10);
+    ctx.fillRect(9, -r * 0.62, 5, 10);
+  }
+
+  // 船体体积：底暗 → 中段 → 甲板高光（左上受光）
+  fillBossEllipse(1, 8, r * 0.98, r * 0.62, hullDeep);
+  fillBossEllipse(0, 2, r * 0.94, r * 0.56, hullMid);
+  fillBossEllipse(-6, -10, r * 0.78, r * 0.4, hullHi);
+  fillBossEllipse(-12, -16, r * 0.38, r * 0.18, hullTop);
+
+  // 甲板装甲条，增加结构而不是一块色
+  ctx.fillStyle = hullDeep;
+  ctx.fillRect(-r * 0.55, -6, r * 1.1, 3);
+  ctx.fillRect(-r * 0.48, 8, r * 0.96, 3);
+  ctx.fillStyle = hullTop;
+  ctx.fillRect(-r * 0.5, -8, r * 0.7, 2);
+  ctx.fillRect(-r * 0.22, 6, r * 0.44, 2);
+
+  // 舰桥 / 传感器
+  ctx.fillStyle = hullDeep;
+  ctx.fillRect(-22, -r * 0.42, 44, 16);
+  ctx.fillStyle = hullHi;
+  ctx.fillRect(-18, -r * 0.46, 36, 12);
+  ctx.fillStyle = hullTop;
+  ctx.fillRect(-16, -r * 0.48, 14, 6);
+  ctx.fillStyle = t2 ? '#ffeb3b' : '#80d8ff';
+  ctx.fillRect(-14, -r * 0.4, 8, 6);
+  ctx.fillRect(6, -r * 0.4, 8, 6);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(-12, -r * 0.42, 3, 2);
+  ctx.fillRect(8, -r * 0.42, 3, 2);
+
+  // 反应炉凹进核心
+  fillBossEllipse(0, 2, 22, 16, '#0a0414');
+  fillBossEllipse(0, 2, 16, 12, core);
+  ctx.globalAlpha = 0.55 + pulse * 0.25;
+  fillBossEllipse(-3, -1, 8, 6, coreHot);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(-2, -2, 3, 2);
+
+  // 三门主炮对准玩家一侧；预读闪白画在炮口
+  const tel = b.telegraph || 0;
+  drawBossCannon(-r * 0.62, 10, 16, tel, accent);
+  drawBossCannon(0, 16, 18, tel, accent);
+  drawBossCannon(r * 0.62, 10, 16, tel, accent);
+  if (t2) {
+    drawBossCannon(-r * 0.92, 2, 12, tel, accent);
+    drawBossCannon(r * 0.92, 2, 12, tel, accent);
+  }
 
   ctx.restore();
 }
 
-/** 【新增】画面上方 BOSS 血条 */
+/** 【新增】画面上方 BOSS 血条（凹槽 + 分段，看起来像舰体能量槽） */
 function drawBossHPBar() {
   if (!boss) return;
-  const barW = 360;
-  const barH = 14;
+  const barW = 400;
+  const barH = 12;
   const bx = (CANVAS_W - barW) / 2;
-  const by = 12;
+  const by = 16;
   const ratio = Math.max(0, boss.hp / boss.maxHp);
+  const t2 = boss.tier === 2;
+  const name = t2 ? '歼灭者  ·  强化母舰' : '深空母舰';
+  const fill = ratio > 0.3 ? (t2 ? '#ff1744' : '#e040fb') : '#ff1744';
 
-  ctx.fillStyle = 'rgba(0,0,0,0.6)';
-  ctx.fillRect(bx - 2, by - 2, barW + 4, barH + 4);
-  ctx.fillStyle = '#333';
-  ctx.fillRect(bx, by, barW, barH);
-  ctx.fillStyle = ratio > 0.3 ? '#ff4081' : '#ff1744';
-  ctx.fillRect(bx, by, barW * ratio, barH);
-  ctx.strokeStyle = '#fff';
+  ctx.fillStyle = 'rgba(6, 4, 14, 0.82)';
+  ctx.fillRect(bx - 10, by - 14, barW + 20, 42);
+  ctx.strokeStyle = t2 ? '#ff8a80' : '#ce93d8';
   ctx.lineWidth = 1;
+  ctx.strokeRect(bx - 10, by - 14, barW + 20, 42);
+
+  ctx.fillStyle = '#1a1228';
+  ctx.fillRect(bx, by, barW, barH);
+  ctx.fillStyle = '#0a0612';
+  ctx.fillRect(bx, by + barH - 3, barW, 3);
+  ctx.fillStyle = fill;
+  ctx.fillRect(bx, by, barW * ratio, barH);
+  ctx.fillStyle = 'rgba(255,255,255,0.28)';
+  ctx.fillRect(bx, by, barW * ratio, 3);
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 1;
+  for (let i = 1; i < 8; i++) {
+    const x = bx + (barW / 8) * i;
+    ctx.beginPath();
+    ctx.moveTo(x, by);
+    ctx.lineTo(x, by + barH);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = '#cfd8dc';
   ctx.strokeRect(bx, by, barW, barH);
 
-  ctx.fillStyle = '#fff';
+  ctx.fillStyle = '#eceff1';
   ctx.font = '12px "Courier New", monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('BOSS  ' + boss.hp + ' / ' + boss.maxHp, CANVAS_W / 2, by + barH + 16);
+  ctx.fillText(name + '   ' + boss.hp + ' / ' + boss.maxHp, CANVAS_W / 2, by + barH + 14);
   ctx.textAlign = 'left';
 }
 
@@ -2607,9 +3075,11 @@ function drawBossBanners() {
   ctx.textAlign = 'left';
 }
 
-/** 绘制发光掉落物（柔和光晕） */
+/** 绘制发光掉落物（柔和光晕 + 名称，避免只靠颜色猜） */
 function drawDrop(d) {
   const glow = 0.5 + Math.sin(d.pulse) * 0.3;
+  const def = EQUIPMENT_TYPES[d.type];
+  const competing = isCompetingFireDrop(d.type);
   ctx.save();
   // 外层柔和光晕
   ctx.globalAlpha = glow * 0.18;
@@ -2626,6 +3096,19 @@ function drawDrop(d) {
   ctx.fillRect(d.x - 6, d.y - 6, 12, 12);
   ctx.fillStyle = '#fff';
   ctx.fillRect(d.x - 2, d.y - 2, 4, 4);
+  if (def) {
+    ctx.globalAlpha = competing ? 0.7 : 0.95;
+    ctx.fillStyle = competing ? '#ffab91' : '#fff';
+    ctx.font = 'bold 11px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(def.short || def.name, d.x, d.y - 16);
+    if (competing) {
+      ctx.fillStyle = '#ff8a65';
+      ctx.font = '10px "Courier New", monospace';
+      ctx.fillText('会替换', d.x, d.y + 22);
+    }
+    ctx.textAlign = 'left';
+  }
   ctx.restore();
 }
 
@@ -2634,6 +3117,7 @@ function drawMeteor(m) {
   ctx.save();
   ctx.translate(m.x, m.y);
   ctx.rotate(m.rotation);
+  if (m.safeFrames > 0) ctx.globalAlpha = 0.45 + 0.4 * (1 - m.safeFrames / METEOR_SPLIT_SAFE_FRAMES);
 
   const isLarge = m.type === 'large';
   const pts = m.shapePoints;
@@ -2795,7 +3279,7 @@ function drawDamageFlash() {
 
 /** 【体验优化】绘制瞄准辅助线（淡） */
 function drawAimLine() {
-  if (!ship || gameState !== STATE.PLAYING) return;
+  if (!aimLineEnabled || !ship || gameState !== STATE.PLAYING) return;
   ctx.strokeStyle = 'rgba(126, 200, 255, 0.12)';
   ctx.lineWidth = 1;
   ctx.setLineDash([4, 6]);
@@ -2804,6 +3288,19 @@ function drawAimLine() {
   ctx.lineTo(mouseX, mouseY);
   ctx.stroke();
   ctx.setLineDash([]);
+}
+
+function drawBombFlash() {
+  if (bombFlash <= 0 || !ship) return;
+  const t = 1 - bombFlash / 20;
+  ctx.save();
+  ctx.globalAlpha = (bombFlash / 20) * 0.55;
+  ctx.strokeStyle = '#ffab40';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(ship.x, ship.y, 24 + BOMB_RADIUS * t, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
 }
 
 /** 绘制 HUD（左上角分数与生命值） */
@@ -2823,9 +3320,16 @@ function drawHUD() {
     ctx.fillRect(70 + i * 22, 56, 16, 16);
   }
 
+  ctx.fillStyle = '#aaa';
+  ctx.fillText('轰炸:', 14, 94);
+  for (let i = 0; i < BOMB_MAX; i++) {
+    ctx.fillStyle = i < bombCount ? '#ffab40' : '#333';
+    ctx.fillRect(70 + i * 22, 80, 16, 16);
+  }
+
   const seconds = Math.floor(gameTime / 60);
   ctx.fillStyle = '#888';
-  ctx.fillText('时间: ' + seconds + 's', 14, 94);
+  ctx.fillText('时间: ' + seconds + 's', 14, 118);
 
   ctx.textAlign = 'right';
   ctx.fillStyle = currentDifficulty === 'hard' ? '#ff5252' : (currentDifficulty === 'easy' ? '#69f0ae' : '#7ec8ff');
@@ -2838,12 +3342,12 @@ function drawHUD() {
   if (combo >= 2) {
     ctx.fillStyle = '#ff9800';
     ctx.font = 'bold 15px "Courier New", monospace';
-    ctx.fillText('连击 x' + combo + ' (' + getComboMultiplier().toFixed(1) + '倍)', 14, 116);
+    ctx.fillText('连击 x' + combo + ' (' + getComboMultiplier().toFixed(1) + '倍)', 14, 142);
     ctx.font = '16px "Courier New", monospace';
   }
 
   // BOSS 预告倒计时
-  let hudLineY = combo >= 2 ? 136 : 116;
+  let hudLineY = combo >= 2 ? 162 : 142;
   if (!boss && !boss1Triggered && seconds >= BOSS_WARNING_SEC && seconds < BOSS_SPAWN_TIME_SEC) {
     const left = BOSS_SPAWN_TIME_SEC - seconds;
     ctx.fillStyle = left <= 3 ? '#ff5252' : '#ff9800';
@@ -2937,17 +3441,32 @@ function drawMenuOverlay() {
   ctx.fillText('点击「开始游戏」  ·  当前难度 ' + getDiff().name, CANVAS_W / 2, py + 112);
   ctx.fillStyle = '#888';
   ctx.font = '13px "Courier New", monospace';
-  ctx.fillText('WASD 移动  ·  鼠标瞄准射击  ·  P 暂停', CANVAS_W / 2, py + 142);
+  ctx.fillText('WASD 移动  ·  B 轰炸  ·  V 自动射击  ·  P 暂停', CANVAS_W / 2, py + 142);
   ctx.fillStyle = '#666';
   ctx.font = '12px "Courier New", monospace';
-  ctx.fillText('连击加分  ·  90 秒迎击 BOSS  ·  击毁掉落装备', CANVAS_W / 2, py + 170);
+  ctx.fillText('连击加分  ·  45 秒突击  ·  70 秒迎击 BOSS', CANVAS_W / 2, py + 170);
   ctx.fillStyle = '#555';
   ctx.fillText('打开「帮助图鉴」查看装备与任务  ·  「每日任务」每日刷新', CANVAS_W / 2, py + 196);
   ctx.fillText('登录后上传排行榜，称号随最高分提升', CANVAS_W / 2, py + 218);
   ctx.textAlign = 'left';
 }
 
-/** 【手感】Canvas 暂停遮罩（与 HTML 层叠加） */
+/** 开局几秒只提示躲避，把规则送进画面而不是藏在帮助按钮里 */
+function drawTutorialHint() {
+  if (gameState !== STATE.PLAYING || gameTime >= TUTORIAL_SEC * 60) return;
+  const fade = Math.min(1, (TUTORIAL_SEC * 60 - gameTime) / 40);
+  ctx.save();
+  ctx.globalAlpha = 0.35 + 0.5 * fade;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#7ec8ff';
+  ctx.font = 'bold 18px "Courier New", monospace';
+  ctx.fillText('躲开陨石', CANVAS_W / 2, CANVAS_H - 52);
+  ctx.fillStyle = '#aaa';
+  ctx.font = '13px "Courier New", monospace';
+  ctx.fillText('WASD 移动  ·  鼠标瞄准射击', CANVAS_W / 2, CANVAS_H - 30);
+  ctx.restore();
+}
+
 function drawPauseOverlay() {
   if (gameState !== STATE.PAUSED) return;
   ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
@@ -2968,8 +3487,14 @@ function resetGame() {
   spawnInterval = BASE_SPAWN_INTERVAL;
   gameTime = 0;
   fireCooldown = 0;
+  deathHoldTimer = 0;
+  hitstopFrames = 0;
+  bombCount = getStartBombs();
+  bombCooldown = 0;
+  bombFlash = 0;
   clearEquipmentState(); // 【新增】清空本局装备
-  clearBossState();      // 【新增】清空 BOSS 状态与爆炸粒子
+  clearBossState();
+  nextSwarmGameTime = EARLY_SWARM_SEC * 60;
   // 【体验优化】重置手感状态
   screenShake = 0;
   damageFlash = 0;
@@ -2979,6 +3504,7 @@ function resetGame() {
   killCount = 0;
   scorePopups = [];
   achievementToasts = [];
+  achievementToastQueue = [];
   resetRunStats();
   isPaused = false;
   pauseOverlay.classList.remove('show');
@@ -2994,6 +3520,7 @@ function resetGame() {
         : '登录后可将成绩上传至全球排行榜';
     }
   }
+  updateBombButton();
 }
 
 function startGame() {
@@ -3002,6 +3529,7 @@ function startGame() {
   startBgm();
   resetGame();
   gameState = STATE.PLAYING;
+  updateBombButton();
 }
 
 function formatBossKillReport() {
@@ -3015,6 +3543,8 @@ function endGame() {
   gameState = STATE.GAMEOVER;
   isPaused = false;
   pauseOverlay.classList.remove('show');
+  if (btnPause) btnPause.textContent = '暂停';
+  updateBombButton();
   clearEquipmentState();
   clearBossState();
   const isNewRecord = score > highScore;
@@ -3061,20 +3591,24 @@ function endGame() {
   }
 }
 
-/** 移除陨石；giveScore 为 true 时计分并触发分裂（被子弹击毁） */
-function destroyMeteor(index, giveScore) {
+/** 移除陨石；giveScore 计分；skipSplit 用于轰炸，避免炸完又弹出碎片 */
+function destroyMeteor(index, giveScore, skipSplit) {
   const m = meteors[index];
   if (giveScore) {
     const base = m.type === 'large' ? METEOR_LARGE_SCORE : METEOR_SMALL_SCORE;
     registerKill(m.x, m.y, base, false);
     playExplodeSound();
-    if (m.type === 'large') {
+    if (m.type === 'large' && !skipSplit) {
       for (let i = 0; i < 2; i++) {
-        const offset = (i === 0 ? -1 : 1) * 8;
+        const offset = (i === 0 ? -1 : 1) * 10;
         const sm = createMeteor(m.x + offset, m.y, 'small');
-        const angle = Math.atan2(sm.vy, sm.vx) + (i === 0 ? 0.5 : -0.5);
-        sm.vx = Math.cos(angle) * METEOR_SMALL_SPEED * 1.3;
-        sm.vy = Math.sin(angle) * METEOR_SMALL_SPEED * 1.3;
+        const away = ship
+          ? Math.atan2(m.y - ship.y, m.x - ship.x)
+          : Math.atan2(sm.vy, sm.vx);
+        const a = away + (i === 0 ? 0.55 : -0.55);
+        sm.vx = Math.cos(a) * METEOR_SMALL_SPEED * 1.35;
+        sm.vy = Math.sin(a) * METEOR_SMALL_SPEED * 1.35;
+        sm.safeFrames = METEOR_SPLIT_SAFE_FRAMES;
         meteors.push(sm);
       }
     }
@@ -3088,6 +3622,21 @@ function destroyMeteor(index, giveScore) {
 }
 
 function updatePlaying() {
+  if (deathHoldTimer > 0) {
+    deathHoldTimer--;
+    updateBgStars();
+    updateJuice();
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life--;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+    if (deathHoldTimer <= 0) endGame();
+    return;
+  }
+
   gameTime++;
   updateBgStars();
   updateJuice();
@@ -3137,14 +3686,16 @@ function updatePlaying() {
 
   // 射击
   if (fireCooldown > 0) fireCooldown--;
-  if (keys[' '] || mouseDown) {
+  if (bombCooldown > 0) bombCooldown--;
+  if (bombFlash > 0) bombFlash--;
+  if (autoFire || keys[' '] || mouseDown) {
     fireBullet();
   }
 
   // 【新增】更新装备倒计时
   updateActiveEquipments();
 
-  // 【拓展】激光束装备：持续 7 秒内周期性发射贯穿全屏激光
+  // 【拓展】激光束装备：持续 4 秒内周期性发射贯穿全屏激光
   for (let i = laserBeams.length - 1; i >= 0; i--) {
     laserBeams[i].life--;
     if (laserBeams[i].life <= 0) laserBeams.splice(i, 1);
@@ -3166,11 +3717,11 @@ function updatePlaying() {
     d.y += DROP_FLOAT_SPEED;
     d.pulse += 0.08;
     d.life--;
-    // 【体验优化】靠近飞船时磁吸，提升拾取手感
+    // 【体验优化】靠近飞船时磁吸；互斥火力不自动吸过来，避免抢走正在用的枪
     const dx = ship.x - d.x;
     const dy = ship.y - d.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < DROP_MAGNET_RANGE && dist > 1) {
+    if (dist < DROP_MAGNET_RANGE && dist > 1 && magnetEnabled && !isCompetingFireDrop(d.type)) {
       d.x += (dx / dist) * DROP_MAGNET_FORCE;
       d.y += (dy / dist) * DROP_MAGNET_FORCE;
     }
@@ -3209,6 +3760,7 @@ function updatePlaying() {
         }
         if (meteors[j].hp <= 0) {
           destroyMeteor(j, true);
+          addHitstop(HITSTOP_KILL_FRAMES);
         }
         break;
       }
@@ -3225,6 +3777,7 @@ function updatePlaying() {
       }
       if (boss.hp <= 0) {
         destroyBoss();
+        addHitstop(HITSTOP_BOSS_KILL_FRAMES);
       }
     }
   }
@@ -3235,8 +3788,19 @@ function updatePlaying() {
     m.x += m.vx;
     m.y += m.vy;
     m.rotation += m.rotSpeed;
+    if (m.safeFrames > 0) m.safeFrames--;
+
+    // 飞出画面后回收，避免屏幕外幽灵碰撞或数组无限涨
+    if (
+      m.x < -METEOR_DESPAWN_MARGIN || m.x > CANVAS_W + METEOR_DESPAWN_MARGIN ||
+      m.y < -METEOR_DESPAWN_MARGIN || m.y > CANVAS_H + METEOR_DESPAWN_MARGIN
+    ) {
+      meteors.splice(i, 1);
+      continue;
+    }
 
     // 陨石 vs 飞船
+    if (m.safeFrames > 0) continue;
     if (ship.invincible <= 0 && circleCollision(ship, m, SHIP_SIZE * 0.6, m.radius * 0.85)) {
       // 【新增】护盾抵挡一次撞击
       if (shieldActive) {
@@ -3257,7 +3821,7 @@ function updatePlaying() {
       playHurtSound();
       destroyMeteor(i, false);
       if (ship.hp <= 0) {
-        endGame();
+        beginDeath();
         return;
       }
     }
@@ -3280,7 +3844,7 @@ function updatePlaying() {
       createExplosion(ship.x, ship.y, '#ff5252', 10);
       playHurtSound();
       if (ship.hp <= 0) {
-        endGame();
+        beginDeath();
         return;
       }
     }
@@ -3355,6 +3919,7 @@ function render() {
     bossExplosionParticles.forEach(drawBossExplosionParticle);
     drawAimLine();
     if (ship) drawShip(ship);
+    drawBombFlash();
     drawScorePopups();
     if (gameState === STATE.PLAYING || gameState === STATE.PAUSED) {
       drawHUD();
@@ -3373,6 +3938,7 @@ function render() {
   drawTensionVignette(); // 【画面】后期边缘红晕（不遮挡中心）
   drawDamageFlash();
   drawAchievementToasts();
+  drawTutorialHint();
   drawPauseOverlay(); // 【手感】暂停遮罩
 
   if (gameState === STATE.MENU) {
@@ -3385,7 +3951,11 @@ function render() {
 
 function gameLoop() {
   if (gameState === STATE.PLAYING) {
-    updatePlaying();
+    if (hitstopFrames > 0) {
+      hitstopFrames--;
+    } else {
+      updatePlaying();
+    }
   }
   render();
   requestAnimationFrame(gameLoop);
@@ -3394,6 +3964,7 @@ function gameLoop() {
 // ---------- 事件绑定 ----------
 
 document.addEventListener('keydown', (e) => {
+  // 输入框内不占用 WASD/空格，避免打字时飞船跟着动
   if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
   if (e.key === 'Escape' && achievementModal.classList.contains('show')) {
     closeAchievementModal();
@@ -3406,8 +3977,29 @@ document.addEventListener('keydown', (e) => {
     togglePause();
     return;
   }
-  if (e.key === ' ' && gameState === STATE.PLAYING) {
+  // 结算后按 R / Enter 立刻再开，少一次鼠标往返
+  if ((e.key === 'b' || e.key === 'B') && gameState === STATE.PLAYING) {
     e.preventDefault();
+    fireBomb();
+    return;
+  }
+  if ((e.key === 'v' || e.key === 'V') && (gameState === STATE.PLAYING || gameState === STATE.PAUSED || gameState === STATE.MENU)) {
+    e.preventDefault();
+    setAutoFire(!autoFire);
+    return;
+  }
+  if ((e.key === 'r' || e.key === 'R' || e.key === 'Enter') && gameState === STATE.GAMEOVER) {
+    e.preventDefault();
+    startGame();
+    return;
+  }
+  if (gameState === STATE.PLAYING || gameState === STATE.PAUSED) {
+    if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'ArrowDown' ||
+        e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+    }
+  }
+  if (e.key === ' ' && gameState === STATE.PLAYING) {
     fireBullet();
   }
 });
@@ -3418,6 +4010,7 @@ document.addEventListener('keyup', (e) => {
 
 canvas.addEventListener('mousemove', (e) => {
   const rect = canvas.getBoundingClientRect();
+  // CSS 缩放后 client 坐标不等于逻辑 800x600，必须按宽高比映射
   mouseX = (e.clientX - rect.left) * (CANVAS_W / rect.width);
   mouseY = (e.clientY - rect.top) * (CANVAS_H / rect.height);
 });
@@ -3433,23 +4026,35 @@ canvas.addEventListener('mousedown', (e) => {
 });
 
 canvas.addEventListener('mouseup', () => { mouseDown = false; });
-canvas.addEventListener('mouseleave', () => { mouseDown = false; });
+document.addEventListener('mouseup', () => { mouseDown = false; });
 
 btnStart.addEventListener('click', startGame);
-btnRetry.addEventListener('click', startGame);
+if (btnRetry) btnRetry.addEventListener('click', startGame);
 btnPause.addEventListener('click', togglePause);
+if (btnBomb) btnBomb.addEventListener('click', fireBomb);
+if (btnAutoFire) btnAutoFire.addEventListener('click', function () { setAutoFire(!autoFire); });
+const btnMenu = document.getElementById('btnMenu');
+if (btnMenu) btnMenu.addEventListener('click', returnToMenu);
+const btnPauseResume = document.getElementById('btnPauseResume');
+if (btnPauseResume) btnPauseResume.addEventListener('click', function () {
+  if (gameState === STATE.PAUSED) togglePause();
+});
+const btnPauseRetry = document.getElementById('btnPauseRetry');
+if (btnPauseRetry) btnPauseRetry.addEventListener('click', startGame);
 btnAchievements.addEventListener('click', openAchievementModal);
 btnAchClose.addEventListener('click', closeAchievementModal);
 
-btnSound.addEventListener('click', () => {
-  soundEnabled = !soundEnabled;
-  saveSoundEnabled(soundEnabled);
-  updateSoundButton();
-  if (soundEnabled) {
-    initAudio();
-    playTone(660, 0.08, 'square', 0.05);
-  }
-});
+if (btnSound) {
+  btnSound.addEventListener('click', () => {
+    soundEnabled = !soundEnabled;
+    saveSoundEnabled(soundEnabled);
+    updateSoundButton();
+    if (soundEnabled) {
+      initAudio();
+      playTone(660, 0.08, 'square', 0.05);
+    }
+  });
+}
 
 ['easy', 'normal', 'hard'].forEach(function (id) {
   const el = document.getElementById('diff' + id.charAt(0).toUpperCase() + id.slice(1));
@@ -3470,12 +4075,33 @@ if (btnSetSound) {
     updateSoundButton();
   });
 }
+const btnSetAutoFire = document.getElementById('btnSetAutoFire');
+if (btnSetAutoFire) {
+  btnSetAutoFire.addEventListener('click', function () { setAutoFire(!autoFire); });
+}
+const btnSetAimLine = document.getElementById('btnSetAimLine');
+if (btnSetAimLine) {
+  btnSetAimLine.addEventListener('click', function () { setAimLine(!aimLineEnabled); });
+}
+const btnSetShake = document.getElementById('btnSetShake');
+if (btnSetShake) {
+  btnSetShake.addEventListener('click', function () { setShake(!shakeEnabled); });
+}
+const btnSetMagnet = document.getElementById('btnSetMagnet');
+if (btnSetMagnet) {
+  btnSetMagnet.addEventListener('click', function () { setMagnet(!magnetEnabled); });
+}
 
 // ---------- 初始化 ----------
 loadAchievements();
 loadLifetimeStats();
 initBgStars();
 updateSoundButton();
+updateAutoFireButton();
+setAimLine(aimLineEnabled);
+setShake(shakeEnabled);
+setMagnet(magnetEnabled);
+updateBombButton();
 updateAchievementBadge();
 gameLoop();
 
@@ -3497,15 +4123,18 @@ gameLoop();
 操作方式：
    - W / A / S / D：控制飞船上下左右移动
    - 空格键 或 鼠标左键：朝鼠标方向发射子弹
+   - B：紧急轰炸（每局有限）
+   - V：开关自动射击
    - P 键 或 Esc：暂停 / 继续
+   - 任务结束后按 R 或 Enter：立刻再开一局
 游戏规则：
-   - 击毁大陨石得 20 分，小陨石得 10 分（连击可获最高倍率加分）
+   - 击毁大陨石得 20 分，小陨石得 10 分（连击可获最高 4 倍加分）
    - 2 秒内连续击毁维持连击
-   - 大陨石被击碎后会分裂成 2 块小陨石
+   - 大陨石被击碎后会分裂成 2 块小陨石（碎片刚弹出时短暂不伤人）
    - 飞船共 3 点生命，被陨石撞击扣 1 点，归零则游戏结束
    - 存活越久难度分三阶段提升，击败 BOSS 后会出现陨石潮
-   - 装备：连发枪、穿透弹、护盾、加速推进、散弹枪、激光束、回血装置
-   - 存活 90 秒触发第一 BOSS，再存活 120 秒出现强化 BOSS
+   - 装备：连发枪、穿透弹、护盾、加速推进、散弹枪、激光束、回血装置；连发/散弹/激光互斥
+   - 存活约 45 秒出现陨石突击，约 70 秒触发第一 BOSS，再存活约 75 秒出现强化 BOSS
 按钮：
    - 开始游戏 / 重新挑战 / 暂停
    - 成就：查看 18 项成就

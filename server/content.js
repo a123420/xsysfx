@@ -1,5 +1,11 @@
 'use strict';
 
+/**
+ * 像素陨石防线 — 内容与规则常量。
+ * 供 server 与前端每日任务算法共用：日期、抽题、称号、难度归一化。
+ * 前端 public/js/client.js 必须使用同一套 dateKey / hash / 抽题公式，否则离线任务会对不上。
+ */
+
 const ANNOUNCEMENTS = [
   {
     id: 'brief-1',
@@ -26,11 +32,13 @@ const MISSION_POOL = [
   { id: 'boss_1', name: '迎击旗舰', desc: '单局击败 1 只 BOSS', key: 'bossKills', target: 1 }
 ];
 
+/** 北京时间自然日 YYYY-MM-DD。加 8 小时是为了用 UTC ISO 切出东八区日期，避免服务器在 UTC 下提前换日。 */
 function dateKey(ts) {
   const d = new Date((ts || Date.now()) + 8 * 3600 * 1000);
   return d.toISOString().slice(0, 10);
 }
 
+/** FNV-1a 变体：把日期字符串打成稳定整数，同一天抽题结果固定。 */
 function hashStr(s) {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
@@ -40,6 +48,7 @@ function hashStr(s) {
   return h >>> 0;
 }
 
+/** 按日期种子从题池抽 3 题；splice 保证当日三项不重复。 */
 function dailyMissions(key) {
   const pool = MISSION_POOL.slice();
   let seed = hashStr(key || dateKey());
@@ -66,6 +75,7 @@ function weekStartMs(ts) {
   return (ts || Date.now()) - 7 * 24 * 60 * 60 * 1000;
 }
 
+/** 非法或空难度一律回落到 standard，避免排行榜筛出空档或脏数据。 */
 function normalizeDifficulty(value) {
   const id = String(value || 'normal');
   if (id === 'easy' || id === 'normal' || id === 'hard') return id;

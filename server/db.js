@@ -1,5 +1,10 @@
 'use strict';
 
+/**
+ * JSON 文件存储：账号、战绩、会话。
+ * 仅供本机 Node 服务使用，不面向浏览器。写入走临时文件再 rename，避免写到一半断电留下半份 JSON。
+ */
+
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -32,6 +37,7 @@ function uid(prefix) {
 }
 
 function hashPassword(password, salt) {
+  // scrypt 为 Node 内置慢哈希，避免明文落盘
   return crypto.scryptSync(password, salt, 32).toString('hex');
 }
 
@@ -58,6 +64,7 @@ class Database {
       };
       this.purgeExpiredSessions(false);
     } catch (err) {
+      // 文件损坏时丢弃内存库而不是退出进程，保证游戏页面仍能打开
       console.error('[db] 读取数据失败，使用空库:', err.message);
       this.store = emptyStore();
     }
@@ -65,6 +72,7 @@ class Database {
 
   save() {
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    // 先写 tmp 再原子替换，防止并发/崩溃时 store.json 被截断
     fs.writeFileSync(TMP_FILE, JSON.stringify(this.store, null, 2), 'utf8');
     fs.renameSync(TMP_FILE, DATA_FILE);
   }
@@ -169,6 +177,7 @@ class Database {
     const a = Buffer.from(hashed, 'hex');
     const b = Buffer.from(user.passwordHash, 'hex');
     if (a.length !== b.length) return false;
+    // 长度先对齐再比较，避免 timingSafeEqual 抛错把登录打成 500
     return crypto.timingSafeEqual(a, b);
   }
 
@@ -204,6 +213,7 @@ class Database {
       user.achievements = { ...(user.achievements || {}), ...achievements };
     }
     if (lifetime && typeof lifetime === 'object') {
+      // 累计数据只升不降，避免旧客户端把云端进度打回去
       user.lifetime = {
         totalGames: Math.max(user.lifetime?.totalGames || 0, Number(lifetime.totalGames) || 0),
         totalKills: Math.max(user.lifetime?.totalKills || 0, Number(lifetime.totalKills) || 0),
@@ -219,6 +229,7 @@ class Database {
     return user;
   }
 
+  /** 用本局战绩刷新当日任务进度：只取历史最大，避免后一局更差把进度打回去。 */
   updateDailyFromRun(user, payload) {
     const daily = this.ensureDaily(user);
     const run = {
@@ -283,6 +294,7 @@ class Database {
   }
 
   uniqueBest(list) {
+    // 同一账号只保留最高分，避免一个人占满排行榜
     const best = new Map();
     list.forEach((row) => {
       const prev = best.get(row.userId);

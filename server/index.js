@@ -1,5 +1,11 @@
 'use strict';
 
+/**
+ * 像素陨石防线 — HTTP 接口与静态资源入口。
+ * 浏览器只请求 /api/*；登录态用 Authorization: Bearer <token>。
+ * 成功体一律 { ok: true, ... }，失败 { ok: false, error }。
+ */
+
 const path = require('path');
 const express = require('express');
 const { Database } = require('./db');
@@ -43,6 +49,7 @@ function clampInt(value, min, max, fallback) {
   return Math.min(max, Math.max(min, Math.round(n)));
 }
 
+/** 滑动窗口限流：超出则拒绝，防止刷注册/刷分。返回 true 表示应拦截。 */
 function rateLimited(key, max, windowMs) {
   const t = Date.now();
   const rec = loginHits.get(key) || { n: 0, start: t };
@@ -61,6 +68,7 @@ function getToken(req) {
   return '';
 }
 
+/** 校验会话：过期或用户已删时统一 401，避免前端带着旧 token 继续写库。 */
 function requireAuth(req, res, next) {
   const token = getToken(req);
   const session = db.getSession(token);
@@ -182,6 +190,7 @@ app.put('/api/me/cloud', requireAuth, (req, res) => {
   if (achievements && typeof achievements !== 'object') {
     return sendError(res, 400, '成就数据格式不正确');
   }
+  // 云端与本地取较大值合并，防止换设备后进度被旧档覆盖
   const user = db.updateUserCloud(req.user.id, { achievements, lifetime });
   res.json({ ok: true, user: db.publicUser(user) });
 });
@@ -191,6 +200,7 @@ app.post('/api/scores', requireAuth, (req, res) => {
   if (rateLimited('score:' + req.user.id + ':' + ip, 30, 10 * 60 * 1000)) {
     return sendError(res, 429, '提交过于频繁');
   }
+  // 分数等字段夹紧上下限：非法数字会变成 -1 并在下面被拒绝
   const score = clampInt(req.body?.score, 0, 100000, -1);
   const surviveSec = clampInt(req.body?.surviveSec, 0, 7200, -1);
   const kills = clampInt(req.body?.kills, 0, 5000, -1);
@@ -240,6 +250,7 @@ app.get('/api/me/history', requireAuth, (req, res) => {
 });
 
 app.use((req, res) => {
+  // API 未知路径返回 JSON，避免前端把 HTML 首页当成接口解析失败
   if (req.path.startsWith('/api')) {
     return sendError(res, 404, '接口不存在');
   }
